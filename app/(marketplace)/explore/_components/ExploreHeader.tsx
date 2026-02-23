@@ -339,7 +339,7 @@ export function ExploreHeaderSlots({
       {/* Row 2: Scrollable filter chips (all categories) + All filters button */}
       <div className="flex items-center gap-3">
         {/* Scrollable chips container */}
-        <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
+        <div className="flex-1 min-w-0 overflow-x-auto scrollbar-hidden">
           <div className="flex items-center gap-2 pb-1">
             {/* Build a sorted list: selected chips first, then unselected */}
             {(() => {
