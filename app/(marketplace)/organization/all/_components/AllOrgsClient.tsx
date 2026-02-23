@@ -2,7 +2,12 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SearchIcon, SlidersHorizontalIcon, BuildingIcon, UsersIcon } from "lucide-react";
+import {
+  SearchIcon,
+  ArrowUpDownIcon,
+  ChevronDownIcon,
+  UsersIcon,
+} from "lucide-react";
 import { OrganizationCard } from "./OrganizationCard";
 import { useHeaderContext } from "@/app/(marketplace)/_components/Header/context";
 import type { MockOrganization } from "@/lib/mock-data";
@@ -22,173 +27,10 @@ const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
 ];
 
-const PLACEHOLDER_TEXTS = [
-  "Search by name...",
-  "Search by country...",
-  "Search by impact area...",
-];
-
 const containerVariants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.1 } },
 };
-
-// ── Cycling placeholder ──────────────────────────────
-
-function CyclingPlaceholder({ visible }: { visible: boolean }) {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (!visible) return;
-    const id = setInterval(() => {
-      setIndex((i) => (i + 1) % PLACEHOLDER_TEXTS.length);
-    }, 2500);
-    return () => clearInterval(id);
-  }, [visible]);
-
-  if (!visible) return null;
-
-  return (
-    <AnimatePresence mode="wait">
-      <motion.span
-        key={index}
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -4 }}
-        transition={{ duration: 0.25 }}
-        className="text-muted-foreground/60 text-sm pointer-events-none select-none"
-        style={{ fontFamily: "var(--font-instrument-serif-var)", fontStyle: "italic" }}
-      >
-        {PLACEHOLDER_TEXTS[index]}
-      </motion.span>
-    </AnimatePresence>
-  );
-}
-
-// ── Search component ─────────────────────────────────
-
-function SearchSlot({
-  query,
-  setQuery,
-}: {
-  query: string;
-  setQuery: (q: string) => void;
-}) {
-  return (
-    <div className="relative flex items-center w-full max-w-sm">
-      <SearchIcon className="absolute left-4 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className={cn(
-          "w-full h-11 pl-11 pr-4 text-sm rounded-full border border-border bg-background",
-          "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30",
-          "transition-all duration-500 hover:border-primary/20",
-          query ? "text-foreground" : "text-transparent caret-foreground"
-        )}
-      />
-      {!query && (
-        <div className="absolute left-11 right-4 flex items-center overflow-hidden pointer-events-none">
-          <CyclingPlaceholder visible={!query} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Filter bar ───────────────────────────────────────
-
-function FilterBar({
-  sort,
-  setSort,
-  countryFilter,
-  setCountryFilter,
-  countries,
-}: {
-  sort: string;
-  setSort: (s: string) => void;
-  countryFilter: string | null;
-  setCountryFilter: (c: string | null) => void;
-  countries: string[];
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-      className="flex items-center gap-4 overflow-x-auto scrollbar-hidden pb-1"
-    >
-      {/* Country filter pills */}
-      <div className="flex items-center gap-2 shrink-0">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          onClick={() => setCountryFilter(null)}
-          className={cn(
-            "text-[10px] uppercase tracking-[0.08em] font-medium rounded-full px-3 py-1.5 whitespace-nowrap cursor-pointer transition-all duration-500",
-            countryFilter === null
-              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-              : "text-foreground/60 bg-muted/60 border border-border/50 hover:border-primary/20"
-          )}
-        >
-          All Countries
-        </motion.button>
-        {countries.map((code, index) => {
-          const data = COUNTRY_MAP[code];
-          return (
-            <motion.button
-              key={code}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.05 + 0.4 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setCountryFilter(countryFilter === code ? null : code)}
-              className={cn(
-                "text-[10px] uppercase tracking-[0.08em] font-medium rounded-full px-3 py-1.5 whitespace-nowrap cursor-pointer transition-all duration-500 flex items-center gap-1",
-                countryFilter === code
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : "text-foreground/60 bg-muted/60 border border-border/50 hover:border-primary/20"
-              )}
-            >
-              {data?.emoji} {data?.name ?? code}
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Subtle separator */}
-      <div className="h-5 w-px bg-border/50 shrink-0" />
-
-      {/* Sort options */}
-      <div className="flex items-center gap-2 shrink-0">
-        <SlidersHorizontalIcon className="h-3.5 w-3.5 text-muted-foreground/50" />
-        <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground/60 font-medium">
-          Sort:
-        </span>
-        {SORT_OPTIONS.map((option) => (
-          <motion.button
-            key={option.value}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            onClick={() => setSort(option.value)}
-            className={cn(
-              "text-xs font-medium px-2.5 py-1 rounded-lg transition-all duration-300 cursor-pointer",
-              sort === option.value
-                ? "text-foreground bg-foreground/[0.08]"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {option.label}
-          </motion.button>
-        ))}
-      </div>
-    </motion.div>
-  );
-}
 
 // ── Main client component ─────────────────────────────
 
@@ -196,6 +38,7 @@ export function AllOrgsClient({ organizations }: { organizations: MockOrganizati
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("bumicerts");
   const [countryFilter, setCountryFilter] = useState<string | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const { setRightContent } = useHeaderContext();
 
   // Clear header slots on unmount
@@ -237,6 +80,19 @@ export function AllOrgsClient({ organizations }: { organizations: MockOrganizati
     }
     return result;
   }, [query, sort, countryFilter, organizations]);
+
+  // Build country chips: selected first
+  const countryChips = useMemo(() => {
+    const allCountries = countries.map((code) => ({
+      code,
+      data: COUNTRY_MAP[code],
+      isSelected: countryFilter === code,
+    }));
+    return [
+      ...allCountries.filter((c) => c.isSelected),
+      ...allCountries.filter((c) => !c.isSelected),
+    ];
+  }, [countries, countryFilter]);
 
   return (
     <section className="pt-6 pb-20 md:pb-28 px-6">
@@ -291,21 +147,92 @@ export function AllOrgsClient({ organizations }: { organizations: MockOrganizati
           </motion.div>
         </motion.div>
 
-        {/* Search + filters inline */}
+        {/* Search + filters - matching explore page style */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-          className="flex flex-col gap-4"
+          className="space-y-3"
         >
-          <SearchSlot query={query} setQuery={setQuery} />
-          <FilterBar
-            sort={sort}
-            setSort={setSort}
-            countryFilter={countryFilter}
-            setCountryFilter={setCountryFilter}
-            countries={countries}
-          />
+          {/* Row 1: Search + Sort */}
+          <div className="flex items-center gap-3">
+            {/* Search */}
+            <div className="relative flex-1 min-w-0">
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search organizations..."
+                className="w-full h-10 pl-10 pr-4 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
+
+            {/* Sort dropdown */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setOpenDropdown(openDropdown === "sort" ? null : "sort")}
+                className="flex items-center gap-2 h-10 px-3 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors"
+              >
+                <ArrowUpDownIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">{SORT_OPTIONS.find((o) => o.value === sort)?.label}</span>
+                <ChevronDownIcon
+                  className={cn("h-4 w-4 transition-transform", openDropdown === "sort" && "rotate-180")}
+                />
+              </button>
+
+              <AnimatePresence>
+                {openDropdown === "sort" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className="absolute right-0 top-full mt-1 w-40 bg-background border border-border rounded-lg shadow-xl z-20 py-1"
+                  >
+                    {SORT_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setSort(option.value);
+                          setOpenDropdown(null);
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 text-sm transition-colors",
+                          sort === option.value
+                            ? "text-primary bg-primary/5"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Row 2: Scrollable country chips (selected first) */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0 overflow-x-auto scrollbar-hidden">
+              <div className="flex items-center gap-2 pb-1">
+                {countryChips.map((country) => (
+                  <button
+                    key={country.code}
+                    onClick={() => setCountryFilter(countryFilter === country.code ? null : country.code)}
+                    className={cn(
+                      "shrink-0 text-xs font-medium rounded-full px-3 py-1.5 border transition-all whitespace-nowrap",
+                      country.isSelected
+                        ? "bg-foreground text-background border-foreground"
+                        : "text-muted-foreground border-border hover:border-foreground/50 hover:text-foreground"
+                    )}
+                  >
+                    {country.data?.emoji} {country.data?.name ?? country.code}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Gradient separator line */}
