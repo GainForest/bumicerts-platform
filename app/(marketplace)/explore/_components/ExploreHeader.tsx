@@ -1,217 +1,401 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SearchIcon, SlidersHorizontalIcon, PlusIcon } from "lucide-react";
+import {
+  SearchIcon,
+  SlidersHorizontalIcon,
+  PlusIcon,
+  ChevronDownIcon,
+  ArrowUpDownIcon,
+  MapPinIcon,
+  BuildingIcon,
+  TagIcon,
+} from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useHeaderContext } from "../../_components/Header/context";
 import { MOCK_BUMICERTS } from "@/lib/mock-data";
+import { useModal } from "@/components/ui/modal/context";
+import {
+  ModalContent,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalFooter,
+} from "@/components/ui/modal/modal";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 
-const PLACEHOLDER_TEXTS = [
-  "Search by location...",
-  "Search by ecosystem type...",
-  "Search by organization...",
-  "Search by impact area...",
-];
+// ═══════════════════════════════════════════════════════════════════════════
+// Types & Data
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type Filters = {
+  organizations: string[];
+  countries: string[];
+  objectives: string[];
+};
+
+// Extract unique values for each filter category
+const ORGANIZATIONS = Array.from(
+  new Map(MOCK_BUMICERTS.map((b) => [b.organizationDid, b.organizationName])).entries()
+).map(([did, name]) => ({ value: did, label: name }));
+
+const COUNTRIES = Array.from(new Set(MOCK_BUMICERTS.map((b) => b.country))).map((c) => ({
+  value: c,
+  label: c,
+}));
+
+const OBJECTIVES = Array.from(new Set(MOCK_BUMICERTS.flatMap((b) => b.objectives))).map((o) => ({
+  value: o,
+  label: o,
+}));
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
   { value: "oldest", label: "Oldest" },
 ];
 
-function CyclingPlaceholder({ visible }: { visible: boolean }) {
-  const [index, setIndex] = useState(0);
+const FILTER_CATEGORIES = [
+  { key: "organizations" as const, label: "Organization", icon: BuildingIcon, options: ORGANIZATIONS },
+  { key: "countries" as const, label: "Country", icon: MapPinIcon, options: COUNTRIES },
+  { key: "objectives" as const, label: "Impact Area", icon: TagIcon, options: OBJECTIVES },
+];
 
-  useEffect(() => {
-    if (!visible) return;
-    const id = setInterval(() => {
-      setIndex((i) => (i + 1) % PLACEHOLDER_TEXTS.length);
-    }, 2500);
-    return () => clearInterval(id);
-  }, [visible]);
+// ═══════════════════════════════════════════════════════════════════════════
+// All Filters Modal Content
+// ═══════════════════════════════════════════════════════════════════════════
 
-  if (!visible) return null;
+function AllFiltersModalContent({
+  initialFilters,
+  onApply,
+  onClose,
+}: {
+  initialFilters: Filters;
+  onApply: (filters: Filters) => void;
+  onClose: () => void;
+}) {
+  // Local state for pending filter selections
+  const [pendingFilters, setPendingFilters] = useState<Filters>(initialFilters);
+
+  // Toggle a filter in local state
+  const togglePendingFilter = (category: keyof Filters, value: string) => {
+    setPendingFilters((prev) => {
+      const current = prev[category];
+      const updated = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value];
+      return { ...prev, [category]: updated };
+    });
+  };
+
+  // Clear a category in local state
+  const clearPendingCategory = (category: keyof Filters) => {
+    setPendingFilters((prev) => ({ ...prev, [category]: [] }));
+  };
+
+  // Clear all in local state
+  const clearAllPending = () => {
+    setPendingFilters({ organizations: [], countries: [], objectives: [] });
+  };
+
+  // Apply filters and close
+  const handleApply = () => {
+    onApply(pendingFilters);
+    onClose();
+  };
+
+  // Determine which accordions should be open by default (those with active filters)
+  const defaultOpen = FILTER_CATEGORIES
+    .filter((cat) => initialFilters[cat.key].length > 0)
+    .map((cat) => cat.key);
+
+  // Count pending filters
+  const pendingCount = pendingFilters.organizations.length + pendingFilters.countries.length + pendingFilters.objectives.length;
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.span
-        key={index}
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -4 }}
-        transition={{ duration: 0.25 }}
-        className="text-muted-foreground/60 text-sm pointer-events-none select-none"
-      >
-        {PLACEHOLDER_TEXTS[index]}
-      </motion.span>
-    </AnimatePresence>
+    <ModalContent>
+      <ModalHeader>
+        <ModalTitle>All Filters</ModalTitle>
+        <ModalDescription>Filter projects by organization, country, or impact area</ModalDescription>
+      </ModalHeader>
+
+      {/* Filter sections with Accordion */}
+      <div className="max-h-[50vh] overflow-y-auto -mx-2 px-2">
+        <Accordion
+          type="multiple"
+          defaultValue={defaultOpen.length > 0 ? defaultOpen : ["objectives"]}
+          className="w-full"
+        >
+          {FILTER_CATEGORIES.map((category) => {
+            const Icon = category.icon;
+            const count = pendingFilters[category.key].length;
+            return (
+              <AccordionItem key={category.key} value={category.key} className="border-border">
+                <AccordionTrigger className="hover:no-underline py-3">
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">{category.label}</span>
+                    {count > 0 && (
+                      <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                        {count}
+                      </span>
+                    )}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="flex flex-wrap gap-2 pb-2">
+                    {category.options.map((option) => {
+                      const isSelected = pendingFilters[category.key].includes(option.value);
+                      return (
+                        <button
+                          key={option.value}
+                          onClick={() => togglePendingFilter(category.key, option.value)}
+                          className={cn(
+                            "text-xs font-medium rounded-full px-3 py-1.5 border transition-all",
+                            isSelected
+                              ? "bg-foreground text-background border-foreground"
+                              : "text-muted-foreground border-border hover:border-foreground/50"
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {count > 0 && (
+                    <button
+                      onClick={() => clearPendingCategory(category.key)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Clear {category.label.toLowerCase()}
+                    </button>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      </div>
+
+      <ModalFooter>
+        <div className="flex items-center justify-between w-full">
+          <button
+            onClick={clearAllPending}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Clear all
+          </button>
+          <button
+            onClick={handleApply}
+            className="h-10 px-5 bg-primary text-primary-foreground text-sm font-medium rounded-full hover:bg-primary/90 transition-colors"
+          >
+            Apply filters{pendingCount > 0 ? ` (${pendingCount})` : ""}
+          </button>
+        </div>
+      </ModalFooter>
+    </ModalContent>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Main Export
+// Row 1: Search + Sort
+// Row 2: Scrollable impact area chips + "All filters" button
+// ═══════════════════════════════════════════════════════════════════════════
 
 export function ExploreHeaderSlots({
   query,
   setQuery,
   sort,
   setSort,
-  orgFilter,
-  setOrgFilter,
+  filters,
+  setFilters,
+  toggleFilter,
+  activeFilterCount,
 }: {
   query: string;
   setQuery: (q: string) => void;
   sort: string;
   setSort: (s: string) => void;
-  orgFilter: string | null;
-  setOrgFilter: (o: string | null) => void;
+  filters: Filters;
+  setFilters: (filters: Filters) => void;
+  toggleFilter: (category: keyof Filters, value: string) => void;
+  activeFilterCount: number;
 }) {
-  const { setLeftContent, setRightContent, setSubHeaderContent } =
-    useHeaderContext();
+  const { setRightContent } = useHeaderContext();
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const modal = useModal();
 
-  const orgs = Array.from(
-    new Map(
-      MOCK_BUMICERTS.map((b) => [b.organizationDid, b.organizationName])
-    ).entries()
-  );
-
-  // Left slot: search input
-  useEffect(() => {
-    setLeftContent(
-      <SearchSlot query={query} setQuery={setQuery} />
+  const openFiltersModal = async () => {
+    modal.pushModal(
+      {
+        id: "all-filters",
+        content: (
+          <AllFiltersModalContent
+            initialFilters={filters}
+            onApply={(newFilters) => {
+              setFilters(newFilters);
+            }}
+            onClose={async () => {
+              await modal.hide();
+              modal.clear();
+            }}
+          />
+        ),
+      },
+      true
     );
-  }, [query, setQuery, setLeftContent]);
+    await modal.show();
+  };
 
-  // Right slot: create button (static)
+  // Right slot: create button only
   useEffect(() => {
     setRightContent(
-      <Link
-        href="/bumicert/create"
-        className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-      >
-        <PlusIcon className="h-3.5 w-3.5" />
-        Create
+      <Link href="/bumicert/create">
+        <motion.span
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-primary text-primary-foreground text-sm font-medium transition-all hover:bg-primary/90 shadow-lg shadow-primary/20"
+        >
+          <PlusIcon className="h-4 w-4" />
+          <span className="hidden sm:inline">Create Project</span>
+        </motion.span>
       </Link>
     );
     return () => setRightContent(null);
   }, [setRightContent]);
 
-  // Sub-header slot: filters + sort
-  useEffect(() => {
-    setSubHeaderContent(
-      <FilterBar
-        orgs={orgs}
-        sort={sort}
-        setSort={setSort}
-        orgFilter={orgFilter}
-        setOrgFilter={setOrgFilter}
-      />
-    );
-  }, [sort, orgFilter, setSort, setOrgFilter, setSubHeaderContent, orgs]);
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      setLeftContent(null);
-      setRightContent(null);
-      setSubHeaderContent(null);
-    };
-  }, [setLeftContent, setRightContent, setSubHeaderContent]);
-
-  return null;
-}
-
-function SearchSlot({
-  query,
-  setQuery,
-}: {
-  query: string;
-  setQuery: (q: string) => void;
-}) {
   return (
-    <div className="relative flex items-center w-full max-w-xs">
-      <SearchIcon className="absolute left-3 h-3.5 w-3.5 text-muted-foreground/60 pointer-events-none" />
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className={cn(
-          "w-full h-8 pl-9 pr-3 text-sm rounded-full bg-muted/50 border border-border",
-          "focus:outline-none focus:ring-2 focus:ring-ring focus:bg-background",
-          "transition-all duration-200 shadow-inner",
-          query ? "text-foreground" : "text-transparent caret-foreground"
-        )}
-      />
-      {!query && (
-        <div className="absolute left-9 right-3 flex items-center overflow-hidden pointer-events-none">
-          <CyclingPlaceholder visible={!query} />
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+      className="space-y-3"
+    >
+      {/* Row 1: Search + Sort */}
+      <div className="flex items-center gap-3">
+        {/* Search */}
+        <div className="relative flex-1 min-w-0">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search projects..."
+            className="w-full h-10 pl-10 pr-4 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+          />
         </div>
-      )}
-    </div>
-  );
-}
 
-function FilterBar({
-  orgs,
-  sort,
-  setSort,
-  orgFilter,
-  setOrgFilter,
-}: {
-  orgs: [string, string][];
-  sort: string;
-  setSort: (s: string) => void;
-  orgFilter: string | null;
-  setOrgFilter: (o: string | null) => void;
-}) {
-  return (
-    <div className="flex items-center gap-3 overflow-x-auto scrollbar-hidden pb-1">
-      <div className="flex items-center gap-1.5 shrink-0">
-        <motion.button
-          whileTap={{ scale: 0.93 }}
-          onClick={() => setOrgFilter(null)}
+        {/* Sort dropdown */}
+        <div className="relative shrink-0">
+          <button
+            onClick={() => setOpenDropdown(openDropdown === "sort" ? null : "sort")}
+            className="flex items-center gap-2 h-10 px-3 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors"
+          >
+            <ArrowUpDownIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">{SORT_OPTIONS.find((o) => o.value === sort)?.label}</span>
+            <ChevronDownIcon
+              className={cn("h-4 w-4 transition-transform", openDropdown === "sort" && "rotate-180")}
+            />
+          </button>
+
+          <AnimatePresence>
+            {openDropdown === "sort" && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="absolute right-0 top-full mt-1 w-32 bg-background border border-border rounded-lg shadow-xl z-20 py-1"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setSort(option.value);
+                      setOpenDropdown(null);
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm transition-colors",
+                      sort === option.value
+                        ? "text-primary bg-primary/5"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Row 2: Scrollable filter chips (all categories) + All filters button */}
+      <div className="flex items-center gap-3">
+        {/* Scrollable chips container */}
+        <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-2 pb-1">
+            {/* Build a sorted list: selected chips first, then unselected */}
+            {(() => {
+              // Flatten all filter options with their category info
+              const allChips = FILTER_CATEGORIES.flatMap((category) =>
+                category.options.map((option) => ({
+                  category: category.key,
+                  value: option.value,
+                  label: option.label,
+                  isSelected: filters[category.key].includes(option.value),
+                }))
+              );
+
+              // Sort: selected first, then by original order
+              const sortedChips = [
+                ...allChips.filter((chip) => chip.isSelected),
+                ...allChips.filter((chip) => !chip.isSelected),
+              ];
+
+              return sortedChips.map((chip) => (
+                <button
+                  key={`${chip.category}-${chip.value}`}
+                  onClick={() => toggleFilter(chip.category, chip.value)}
+                  className={cn(
+                    "shrink-0 text-xs font-medium rounded-full px-3 py-1.5 border transition-all whitespace-nowrap",
+                    chip.isSelected
+                      ? "bg-foreground text-background border-foreground"
+                      : "text-muted-foreground border-border hover:border-foreground/50 hover:text-foreground"
+                  )}
+                >
+                  {chip.label}
+                </button>
+              ));
+            })()}
+          </div>
+        </div>
+
+        {/* All filters button - always visible */}
+        <button
+          onClick={openFiltersModal}
           className={cn(
-            "h-7 px-3 rounded-full text-xs font-medium transition-colors duration-150 whitespace-nowrap cursor-pointer",
-            orgFilter === null
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground hover:text-foreground"
+            "shrink-0 flex items-center gap-2 h-8 px-3 text-xs font-medium rounded-full border transition-all",
+            activeFilterCount > 0
+              ? "border-primary/50 bg-primary/5 text-foreground"
+              : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/50"
           )}
         >
-          All
-        </motion.button>
-        {orgs.map(([did, name]) => (
-          <motion.button
-            key={did}
-            whileTap={{ scale: 0.93 }}
-            onClick={() => setOrgFilter(orgFilter === did ? null : did)}
-            className={cn(
-              "h-7 px-3 rounded-full text-xs font-medium transition-colors duration-150 whitespace-nowrap cursor-pointer",
-              orgFilter === did
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {name}
-          </motion.button>
-        ))}
+          <SlidersHorizontalIcon className="h-3.5 w-3.5" />
+          <span>All filters</span>
+          {activeFilterCount > 0 && (
+            <span className="h-4 min-w-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
       </div>
-      <div className="h-4 w-px bg-border shrink-0" />
-      <div className="flex items-center gap-1 shrink-0">
-        <SlidersHorizontalIcon className="h-3 w-3 text-muted-foreground/60" />
-        {SORT_OPTIONS.map((option) => (
-          <motion.button
-            key={option.value}
-            whileTap={{ scale: 0.93 }}
-            onClick={() => setSort(option.value)}
-            className={cn(
-              "h-7 px-2.5 rounded-lg text-xs font-medium transition-colors duration-150 cursor-pointer",
-              sort === option.value
-                ? "bg-foreground/10 text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {option.label}
-          </motion.button>
-        ))}
-      </div>
-    </div>
+    </motion.div>
   );
 }

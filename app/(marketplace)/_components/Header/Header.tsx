@@ -2,14 +2,33 @@
 
 import { useHeaderContext } from "./context";
 import { motion, AnimatePresence } from "framer-motion";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ProgressiveBlur } from "@/components/ui/progressive-blur";
 
 export function Header() {
-  const { leftContent, rightContent, subHeaderContent } = useHeaderContext();
+  const { leftContent, rightContent } = useHeaderContext();
 
   return (
-    <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border">
-      <div className="h-14 flex items-center justify-between px-4 gap-3">
+    <div className="sticky top-0 z-30">
+      {/* Progressive blur background - same approach as TopNavbar */}
+      <div className="absolute inset-0 h-20 pointer-events-none">
+        {/* Subtle gradient overlay for readability */}
+        <div 
+          className="absolute inset-0 z-[1]"
+          style={{
+            background: "linear-gradient(to bottom, var(--background) 0%, transparent 100%)",
+            opacity: 0.8,
+          }}
+        />
+        {/* Progressive blur effect */}
+        <ProgressiveBlur 
+          position="top" 
+          height="100%" 
+          blurLevels={[0.5, 1, 2, 4, 8, 12]}
+          className="z-[0]"
+        />
+      </div>
+
+      <div className="relative z-10 h-14 flex items-center justify-between px-4 gap-3">
         {/* Left slot */}
         <div className="flex-1 flex items-center gap-2 min-w-0">
           <AnimatePresence mode="wait">
@@ -43,24 +62,8 @@ export function Header() {
               </motion.div>
             ) : null}
           </AnimatePresence>
-          <ThemeToggle />
         </div>
       </div>
-
-      {/* Sub-header slot */}
-      <AnimatePresence>
-        {subHeaderContent && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-            className="border-t border-border overflow-hidden"
-          >
-            <div className="px-4 py-2">{subHeaderContent}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -97,7 +97,7 @@ export function DesktopSidebar() {
   };
 
   return (
-    <nav className="w-[240px] h-full flex flex-col justify-between p-4 border-r border-border">
+    <nav className="w-[240px] h-full flex flex-col justify-between p-4 border-r border-border bg-foreground/3">
       {/* Top section */}
       <div className="flex flex-col gap-1">
         {/* Logo + Wordmark */}

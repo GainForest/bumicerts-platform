@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { BuildingIcon, LeafIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { MockOrganization } from "@/lib/mock-data";
 
 const COUNTRY_MAP: Record<string, { emoji: string; name: string }> = {
@@ -30,19 +29,19 @@ export function OrganizationCard({ org }: { org: MockOrganization }) {
   const countryData = COUNTRY_MAP[org.country];
 
   return (
-    <motion.div variants={orgCardVariants}>
-      <Link href={`/organization/${encodeURIComponent(org.did)}`}>
+    <motion.div variants={orgCardVariants} className="h-full">
+      <Link href={`/organization/${encodeURIComponent(org.did)}`} className="h-full">
         <motion.div
           whileHover={{ y: -3 }}
           whileTap={{ scale: 0.98 }}
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className="group rounded-xl border border-border bg-card overflow-hidden cursor-pointer shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300"
+          className="group h-full flex flex-col rounded-xl border border-border bg-card overflow-hidden cursor-pointer shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300"
           style={{
             viewTransitionName: `org-${org.did.replace(/[^a-z0-9]/gi, "-")}`,
           }}
         >
           {/* Cover */}
-          <div className="h-32 relative overflow-hidden">
+          <div className="h-32 relative overflow-hidden shrink-0">
             {org.coverImageUrl ? (
               <Image
                 src={org.coverImageUrl}
@@ -85,20 +84,20 @@ export function OrganizationCard({ org }: { org: MockOrganization }) {
             </div>
           </div>
 
-          {/* Body */}
-          <div className="p-3">
+          {/* Body - flex-1 to fill remaining space */}
+          <div className="p-3 flex-1">
             <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
               {org.shortDescription}
             </p>
           </div>
 
-          {/* Footer */}
-          <div className="px-3 pb-3 flex items-center justify-between">
-            <div className="flex flex-wrap gap-1">
+          {/* Footer - fixed height, no wrap */}
+          <div className="px-3 pb-3 flex items-center justify-between shrink-0">
+            <div className="flex gap-1 overflow-hidden">
               {org.objectives.slice(0, 2).map((obj) => (
                 <span
                   key={obj}
-                  className="text-[10px] bg-muted text-muted-foreground rounded-full px-2 py-0.5 font-medium"
+                  className="text-[10px] bg-muted text-muted-foreground rounded-full px-2 py-0.5 font-medium truncate max-w-[100px]"
                 >
                   {obj}
                 </span>
