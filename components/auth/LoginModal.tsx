@@ -144,7 +144,7 @@ export function LoginModal({ onClose }: LoginModalProps) {
         <Button
           type="submit"
           disabled={!handle.trim() || !!handleError || isPending}
-          className="w-full rounded-full"
+          className="w-full"
         >
           {isPending ? (
             <>

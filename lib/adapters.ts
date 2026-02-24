@@ -57,7 +57,10 @@ export function ecocertToBumicertData(ecocert: Ecocert): BumicertData {
   const record = ecocert.claimActivity.value;
   const { rkey } = parseAtUri(ecocert.claimActivity.uri);
 
-  const imageUrl = ecocert.organizationInfo.coverImageUrl ?? null;
+  const imageUrl =
+    resolveSmallImageUrl(did, record.image) ??
+    ecocert.organizationInfo.coverImageUrl ??
+    null;
   const logoUrl = ecocert.organizationInfo.logoUrl ?? null;
 
   return {

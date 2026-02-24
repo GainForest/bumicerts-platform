@@ -4,7 +4,8 @@ import { useMemo, useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { CompassIcon } from "lucide-react";
 import { deserialize, type SerializedSuperjson } from "gainforest-sdk/utilities/transform";
-import { parseAtUri } from "gainforest-sdk/utilities/atproto";
+import { getBlobUrl, parseAtUri } from "gainforest-sdk/utilities/atproto";
+import { allowedPDSDomains } from "@/lib/config/gainforest-sdk";
 import type { BumicertData } from "@/lib/types";
 import { BumicertGrid } from "./BumicertGrid";
 import { ExploreHeaderSlots, type Filters } from "./ExploreHeader";
@@ -29,6 +30,19 @@ export function ExploreClient({ initialData }: { initialData: SerializedSuperjso
     }
   }, [initialData]);
 
+  const pdsDomain = allowedPDSDomains[0];
+
+  function resolveActivityImageUrl(did: string, image: unknown): string | null {
+    const img = image as { $type?: string } | null | undefined;
+    if (!img?.$type) return null;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return getBlobUrl(did, img as any, pdsDomain);
+    } catch {
+      return null;
+    }
+  }
+
   // Get live data from the store (populated by ExploreHydrator via tRPC)
   const storeState = useExploreStore();
 
@@ -45,7 +59,10 @@ export function ExploreClient({ initialData }: { initialData: SerializedSuperjso
           title: e.claimActivity.value.title,
           shortDescription: e.claimActivity.value.shortDescription ?? "",
           description: e.claimActivity.value.description ?? e.claimActivity.value.shortDescription ?? "",
-          coverImageUrl: e.organizationInfo.coverImageUrl ?? null,
+          coverImageUrl:
+            resolveActivityImageUrl(e.repo.did, e.claimActivity.value.image) ??
+            e.organizationInfo.coverImageUrl ??
+            null,
           logoUrl: e.organizationInfo.logoUrl ?? null,
           organizationName: e.organizationInfo.name,
           country: "",

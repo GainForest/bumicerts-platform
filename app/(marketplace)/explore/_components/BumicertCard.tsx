@@ -37,15 +37,15 @@ export function BumicertCard({ bumicert }: { bumicert: BumicertData }) {
     .replace("less than ", "<");
 
   return (
-    <motion.div variants={cardVariants}>
-      <Link href={`/bumicert/${encodeURIComponent(bumicert.id)}`}>
+    <motion.div variants={cardVariants} className="h-full">
+      <Link href={`/bumicert/${encodeURIComponent(bumicert.id)}`} className="h-full block">
         <motion.div
           onHoverStart={() => setHovered(true)}
           onHoverEnd={() => setHovered(false)}
           whileHover={{ y: -4 }}
           whileTap={{ scale: 0.98 }}
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className="group rounded-2xl border border-border bg-card overflow-hidden cursor-pointer transition-all duration-500 hover:shadow-2xl hover:border-primary/20"
+          className="group h-full flex flex-col rounded-2xl border border-border bg-card overflow-hidden cursor-pointer transition-all duration-500 hover:shadow-2xl hover:border-primary/20"
         >
           {/* Cover image with overlaid dotted header */}
           <div
@@ -125,7 +125,7 @@ export function BumicertCard({ bumicert }: { bumicert: BumicertData }) {
           </div>
 
           {/* Footer - title + description */}
-          <div className="px-4 py-4 border-t border-border">
+          <div className="px-4 py-4 border-t border-border flex-1">
             {/* Title */}
             <h3
               className="text-base font-medium text-foreground leading-snug line-clamp-1"

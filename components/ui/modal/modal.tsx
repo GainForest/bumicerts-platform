@@ -30,7 +30,7 @@ export const ModalHeader = ({
           <Button
             variant={"secondary"}
             size={"icon"}
-            className="rounded-full p-0 h-6 w-6"
+            className="p-0 h-6 w-6"
             onClick={() => {
               backAction();
             }}

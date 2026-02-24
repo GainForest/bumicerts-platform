@@ -24,7 +24,7 @@ export function BumicertGrid({
 }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-8 lg:gap-10 mt-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-8 lg:gap-10 mt-4 items-stretch">
         {Array.from({ length: 6 }).map((_, i) => (
           <BumicertCardSkeleton key={i} />
         ))}
@@ -78,7 +78,7 @@ export function BumicertGrid({
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-8 lg:gap-10 mt-4"
+      className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-8 lg:gap-10 mt-4 items-stretch"
     >
       <AnimatePresence mode="popLayout">
         {bumicerts.map((bumicert) => (
