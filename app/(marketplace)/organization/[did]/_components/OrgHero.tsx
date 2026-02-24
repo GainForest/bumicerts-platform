@@ -4,10 +4,10 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { BadgeCheckIcon, PencilIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { MockOrganization } from "@/lib/mock-data";
+import type { OrganizationData } from "@/lib/types";
 
 interface OrgHeroProps {
-  organization: MockOrganization;
+  organization: OrganizationData;
   isEditing: boolean;
   onEditName?: (name: string) => void;
   editingName?: string;

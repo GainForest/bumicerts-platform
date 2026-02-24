@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { BumicertCard, BumicertCardSkeleton, cardVariants } from "./BumicertCard";
-import type { MockBumicert } from "@/lib/mock-data";
+import type { BumicertData } from "@/lib/types";
 import { LeafIcon, SearchIcon } from "lucide-react";
 
 // Container variants with design system stagger timing
@@ -19,7 +19,7 @@ export function BumicertGrid({
   bumicerts,
   loading = false,
 }: {
-  bumicerts: MockBumicert[];
+  bumicerts: BumicertData[];
   loading?: boolean;
 }) {
   if (loading) {

@@ -16,14 +16,43 @@ This document captures the visual taste and design principles used throughout th
 
 ## Typography
 
-### Font Stack
+### Font Stack (Three Fonts Only)
 
-| Purpose | Font | Usage |
-|---------|------|-------|
-| Display / Hero | `Cormorant Garamond` | Large headlines, hero text, decorative numbers |
-| Grace notes | `Instrument Serif` *italic* | Subheadings, emphasized phrases, elegant labels |
-| Headings | `Baskervville` | Section titles, card titles |
-| Body | `Geist Sans` | All body text, UI elements, buttons |
+We use exactly **three fonts** to maintain visual coherence. Less variety = cleaner design.
+
+| Font | CSS Variable | Purpose |
+|------|--------------|---------|
+| **Cormorant Garamond** | `--font-garamond-var` | Display text, headlines, titles, brand name, decorative numbers |
+| **Instrument Serif** | `--font-instrument-serif-var` | Elegant italic emphasis, fancy accents within text |
+| **Geist Sans** | `--font-geist-sans` | Body text, UI elements, buttons, labels, descriptions |
+
+> **Exception:** `Geist Mono` (`--font-geist-mono`) is available for code snippets and technical data only.
+
+### When to Use Each Font
+
+#### Cormorant Garamond (`--font-garamond-var`)
+- **Hero headlines** on landing pages (e.g., "Verified Impact", "Nature Stewards")
+- **Page titles** and section headlines
+- **Card titles** (BumicertCard, OrganizationCard)
+- **Brand name** "Bumicerts" in navigation
+- **Large decorative numbers** (result counts, statistics)
+- **Editorial statements** and pull quotes
+- Use `font-light` (300) for large display sizes, `font-medium` for smaller titles
+- Tight tracking for display: `tracking-[-0.02em]`
+
+#### Instrument Serif (`--font-instrument-serif-var`)
+- **Italic emphasis** within headlines (e.g., "With Real Communities")
+- **Fancy accent phrases** that add editorial flair
+- **Subheadings** that follow a Garamond headline (secondary emphasis)
+- **Almost always used with `fontStyle: "italic"`**
+- Creates a graceful, editorial contrast against Garamond
+
+#### Geist Sans (default, `--font-geist-sans`)
+- **All body text** and descriptions
+- **UI elements**: buttons, inputs, dropdowns, chips, filters
+- **Labels and captions**: section labels, metadata, timestamps
+- **Navigation items** (except brand name)
+- Small uppercase labels: add `tracking-[0.1em]` to `tracking-[0.15em]`
 
 ### Typography Principles
 
@@ -38,7 +67,7 @@ This document captures the visual taste and design principles used throughout th
 ### Examples
 
 ```tsx
-// Hero headline
+// Hero headline (Cormorant Garamond)
 <h1 
   className="text-5xl md:text-7xl font-light tracking-[-0.02em] leading-[1.1]"
   style={{ fontFamily: "var(--font-garamond-var)" }}
@@ -46,18 +75,31 @@ This document captures the visual taste and design principles used throughout th
   Verified Impact
 </h1>
 
-// Elegant subheading
+// Card title (Cormorant Garamond)
+<h3
+  className="text-base font-medium"
+  style={{ fontFamily: "var(--font-garamond-var)" }}
+>
+  Rainforest Restoration Project
+</h3>
+
+// Fancy italic emphasis within headline (Instrument Serif italic)
 <span 
-  className="italic text-foreground/80"
-  style={{ fontFamily: "var(--font-instrument-serif-var)" }}
+  className="text-foreground/80"
+  style={{ fontFamily: "var(--font-instrument-serif-var)", fontStyle: "italic" }}
 >
   With Real Communities
 </span>
 
-// Section label
+// Section label (Geist Sans - default)
 <span className="text-xs uppercase tracking-[0.15em] text-muted-foreground font-medium">
   About Us
 </span>
+
+// Body text (Geist Sans - default, no style needed)
+<p className="text-sm text-muted-foreground leading-relaxed">
+  This project focuses on restoring native ecosystems...
+</p>
 ```
 
 ---
@@ -274,7 +316,7 @@ While pursuing aesthetics, maintain:
 ## Quick Reference
 
 ```
-Fonts:        Garamond (display) | Instrument Serif (italic accents) | Baskervville (headings) | Geist (body)
+Fonts:        Cormorant Garamond (headlines/titles) | Instrument Serif (italic accents) | Geist (body/UI)
 Colors:       Primary green (accent) | Black/White (content) | Opacity for hierarchy
 Spacing:      Generous (py-20+) | Consistent (px-6) | Breathe (gap-12+)
 Motion:       Subtle (y: 20) | Smooth (0.6s) | Staggered (index * 0.1)

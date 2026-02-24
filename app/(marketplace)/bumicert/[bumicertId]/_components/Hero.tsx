@@ -11,12 +11,12 @@ import {
 } from "lucide-react";
 import { useAdaptiveColors } from "@/hooks/use-adaptive-colors";
 import { getStripedBackground } from "@/lib/getStripedBackground";
-import type { MockBumicert } from "@/lib/mock-data";
+import type { BumicertData } from "@/lib/types";
 import Link from "next/link";
 
-export function BumicertHero({ bumicert }: { bumicert: MockBumicert }) {
+export function BumicertHero({ bumicert }: { bumicert: BumicertData }) {
   const { background, foreground, backgroundMuted } = useAdaptiveColors(
-    bumicert.coverImage
+    bumicert.coverImageUrl
   );
 
   return (
@@ -65,7 +65,7 @@ export function BumicertHero({ bumicert }: { bumicert: MockBumicert }) {
             >
               <span className="bg-black/10 dark:bg-white/10 rounded-full text-xs px-2.5 h-6 flex items-center backdrop-blur-sm">
                 Created{" "}
-                {format(bumicert.createdAt, "MMM d, y")}
+                {format(new Date(bumicert.createdAt), "MMM d, y")}
               </span>
               <span className="text-xs">by</span>
               <Link
@@ -73,14 +73,16 @@ export function BumicertHero({ bumicert }: { bumicert: MockBumicert }) {
                 className="flex items-center gap-1.5 bg-black/10 dark:bg-white/10 hover:bg-black/15 rounded-full text-xs px-2.5 h-6 backdrop-blur-sm transition-colors"
                 style={{ color: `${foreground}95` }}
               >
-                <div className="h-4 w-4 rounded-full overflow-hidden">
-                  <Image
-                    src={bumicert.logoUrl}
-                    alt={bumicert.organizationName}
-                    width={16}
-                    height={16}
-                    className="object-cover"
-                  />
+                <div className="h-4 w-4 rounded-full overflow-hidden bg-muted">
+                  {bumicert.logoUrl && (
+                    <Image
+                      src={bumicert.logoUrl}
+                      alt={bumicert.organizationName}
+                      width={16}
+                      height={16}
+                      className="object-cover"
+                    />
+                  )}
                 </div>
                 {bumicert.organizationName}
               </Link>
@@ -102,9 +104,9 @@ export function BumicertHero({ bumicert }: { bumicert: MockBumicert }) {
               style={{ color: `${foreground}80` }}
             >
               <CalendarIcon className="h-3.5 w-3.5" />
-              <span>{format(bumicert.startDate, "MMM d, y")}</span>
-              <ArrowRightIcon className="h-3 w-3" />
-              <span>{format(bumicert.endDate, "MMM d, y")}</span>
+              {bumicert.startDate && <span>{format(new Date(bumicert.startDate), "MMM d, y")}</span>}
+              {bumicert.startDate && bumicert.endDate && <ArrowRightIcon className="h-3 w-3" />}
+              {bumicert.endDate && <span>{format(new Date(bumicert.endDate), "MMM d, y")}</span>}
             </div>
 
             {/* Work scope tags */}
@@ -128,15 +130,19 @@ export function BumicertHero({ bumicert }: { bumicert: MockBumicert }) {
         {/* Right: cover image */}
         <div className="min-h-60 md:min-h-72 relative p-2">
           <div className="absolute inset-2 overflow-hidden rounded-3xl">
-            <Image
-              src={bumicert.coverImage}
-              alt={bumicert.title}
-              fill
-              className="object-cover"
-              style={{
-                viewTransitionName: `bumicert-img-${bumicert.id.replace(/[^a-z0-9]/gi, "-")}`,
-              }}
-            />
+            {bumicert.coverImageUrl ? (
+              <Image
+                src={bumicert.coverImageUrl}
+                alt={bumicert.title}
+                fill
+                className="object-cover"
+                style={{
+                  viewTransitionName: `bumicert-img-${bumicert.id.replace(/[^a-z0-9]/gi, "-")}`,
+                }}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-muted rounded-3xl" />
+            )}
             {/* Inner shadow vignette using extracted background color */}
             <div
               className="absolute inset-0 rounded-3xl"

@@ -15,7 +15,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useHeaderContext } from "../../_components/Header/context";
-import { MOCK_BUMICERTS } from "@/lib/mock-data";
+import type { BumicertData } from "@/lib/types";
 import { useModal } from "@/components/ui/modal/context";
 import {
   ModalContent,
@@ -41,44 +41,49 @@ export type Filters = {
   objectives: string[];
 };
 
-// Extract unique values for each filter category
-const ORGANIZATIONS = Array.from(
-  new Map(MOCK_BUMICERTS.map((b) => [b.organizationDid, b.organizationName])).entries()
-).map(([did, name]) => ({ value: did, label: name }));
-
-const COUNTRIES = Array.from(new Set(MOCK_BUMICERTS.map((b) => b.country))).map((c) => ({
-  value: c,
-  label: c,
-}));
-
-const OBJECTIVES = Array.from(new Set(MOCK_BUMICERTS.flatMap((b) => b.objectives))).map((o) => ({
-  value: o,
-  label: o,
-}));
-
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
   { value: "oldest", label: "Oldest" },
 ];
 
-const FILTER_CATEGORIES = [
-  { key: "organizations" as const, label: "Organization", icon: BuildingIcon, options: ORGANIZATIONS },
-  { key: "countries" as const, label: "Country", icon: MapPinIcon, options: COUNTRIES },
-  { key: "objectives" as const, label: "Impact Area", icon: TagIcon, options: OBJECTIVES },
-];
+function buildFilterCategories(bumicerts: BumicertData[]) {
+  const organizations = Array.from(
+    new Map(bumicerts.map((b) => [b.organizationDid, b.organizationName])).entries()
+  ).map(([did, name]) => ({ value: did, label: name }));
+
+  const countries = Array.from(new Set(bumicerts.map((b) => b.country).filter(Boolean))).map((c) => ({
+    value: c,
+    label: c,
+  }));
+
+  const objectives = Array.from(new Set(bumicerts.flatMap((b) => b.objectives))).map((o) => ({
+    value: o,
+    label: o,
+  }));
+
+  return [
+    { key: "organizations" as const, label: "Organization", icon: BuildingIcon, options: organizations },
+    { key: "countries" as const, label: "Country", icon: MapPinIcon, options: countries },
+    { key: "objectives" as const, label: "Impact Area", icon: TagIcon, options: objectives },
+  ];
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // All Filters Modal Content
 // ═══════════════════════════════════════════════════════════════════════════
 
+type FilterCategory = ReturnType<typeof buildFilterCategories>[number];
+
 function AllFiltersModalContent({
   initialFilters,
   onApply,
   onClose,
+  filterCategories,
 }: {
   initialFilters: Filters;
   onApply: (filters: Filters) => void;
   onClose: () => void;
+  filterCategories: FilterCategory[];
 }) {
   // Local state for pending filter selections
   const [pendingFilters, setPendingFilters] = useState<Filters>(initialFilters);
@@ -111,7 +116,7 @@ function AllFiltersModalContent({
   };
 
   // Determine which accordions should be open by default (those with active filters)
-  const defaultOpen = FILTER_CATEGORIES
+  const defaultOpen = filterCategories
     .filter((cat) => initialFilters[cat.key].length > 0)
     .map((cat) => cat.key);
 
@@ -132,7 +137,7 @@ function AllFiltersModalContent({
           defaultValue={defaultOpen.length > 0 ? defaultOpen : ["objectives"]}
           className="w-full"
         >
-          {FILTER_CATEGORIES.map((category) => {
+          {filterCategories.map((category) => {
             const Icon = category.icon;
             const count = pendingFilters[category.key].length;
             return (
@@ -218,6 +223,7 @@ export function ExploreHeaderSlots({
   setFilters,
   toggleFilter,
   activeFilterCount,
+  bumicerts,
 }: {
   query: string;
   setQuery: (q: string) => void;
@@ -227,10 +233,12 @@ export function ExploreHeaderSlots({
   setFilters: (filters: Filters) => void;
   toggleFilter: (category: keyof Filters, value: string) => void;
   activeFilterCount: number;
+  bumicerts: BumicertData[];
 }) {
-  const { setRightContent } = useHeaderContext();
+  const { setRightContent, isUnauthenticated } = useHeaderContext();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const modal = useModal();
+  const filterCategories = buildFilterCategories(bumicerts);
 
   const openFiltersModal = async () => {
     modal.pushModal(
@@ -246,6 +254,7 @@ export function ExploreHeaderSlots({
               await modal.hide();
               modal.clear();
             }}
+            filterCategories={filterCategories}
           />
         ),
       },
@@ -254,22 +263,27 @@ export function ExploreHeaderSlots({
     await modal.show();
   };
 
-  // Right slot: create button only
+  // Right slot: create button
   useEffect(() => {
     setRightContent(
       <Link href="/bumicert/create">
         <motion.span
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-primary text-primary-foreground text-sm font-medium transition-all hover:bg-primary/90 shadow-lg shadow-primary/20"
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full text-sm font-medium px-3.5 py-1.5 transition-colors border",
+            isUnauthenticated
+              ? "border-border text-foreground hover:bg-muted"
+              : "bg-primary text-primary-foreground border-transparent hover:bg-primary/90"
+          )}
         >
-          <PlusIcon className="h-4 w-4" />
+          <PlusIcon className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Create Project</span>
         </motion.span>
       </Link>
     );
     return () => setRightContent(null);
-  }, [setRightContent]);
+  }, [isUnauthenticated, setRightContent]);
 
   return (
     <motion.div
@@ -344,7 +358,7 @@ export function ExploreHeaderSlots({
             {/* Build a sorted list: selected chips first, then unselected */}
             {(() => {
               // Flatten all filter options with their category info
-              const allChips = FILTER_CATEGORIES.flatMap((category) =>
+              const allChips = filterCategories.flatMap((category) =>
                 category.options.map((option) => ({
                   category: category.key,
                   value: option.value,

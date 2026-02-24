@@ -1,9 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { MockOrganization } from "@/lib/mock-data";
+import type { OrganizationData } from "@/lib/types";
 
-export function OrgAbout({ organization }: { organization: MockOrganization }) {
+export function OrgAbout({ organization }: { organization: OrganizationData }) {
   const paragraphs = organization.longDescription.split("\n\n").filter(Boolean);
 
   return (

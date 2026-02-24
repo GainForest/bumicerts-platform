@@ -3,7 +3,7 @@
 import { MapPinIcon, GlobeIcon, CalendarIcon, EyeIcon, ChevronRightIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import type { MockOrganization } from "@/lib/mock-data";
+import type { OrganizationData } from "@/lib/types";
 import Link from "next/link";
 
 // Country code to emoji + name (minimal set for mock data)
@@ -66,7 +66,7 @@ function StatChip({ Icon, label, value, emoji, isEditing, onClick }: StatChipPro
 }
 
 interface OrgSubHeroProps {
-  organization: MockOrganization;
+  organization: OrganizationData;
   isEditing: boolean;
 }
 

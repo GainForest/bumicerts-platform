@@ -6,7 +6,7 @@ import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowUpRightIcon } from "lucide-react";
 import { useState } from "react";
-import type { MockBumicert } from "@/lib/mock-data";
+import type { BumicertData } from "@/lib/types";
 
 // Item variants for stagger - using design system's smooth ease
 export const cardVariants = {
@@ -26,11 +26,11 @@ export const cardVariants = {
   },
 };
 
-export function BumicertCard({ bumicert }: { bumicert: MockBumicert }) {
+export function BumicertCard({ bumicert }: { bumicert: BumicertData }) {
   const [hovered, setHovered] = useState(false);
 
   // Format time ago - clean, no "about" or "almost"
-  const timeAgo = formatDistanceToNow(bumicert.createdAt, { addSuffix: false })
+  const timeAgo = formatDistanceToNow(new Date(bumicert.createdAt), { addSuffix: false })
     .replace("about ", "")
     .replace("almost ", "")
     .replace("over ", "")
@@ -54,12 +54,16 @@ export function BumicertCard({ bumicert }: { bumicert: MockBumicert }) {
               viewTransitionName: `bumicert-img-${bumicert.id.replace(/[^a-z0-9]/gi, "-")}`,
             }}
           >
-            <Image
-              src={bumicert.coverImage}
-              alt={bumicert.title}
-              fill
-              className="object-cover scale-105 group-hover:scale-100 transition-transform duration-700"
-            />
+            {bumicert.coverImageUrl ? (
+              <Image
+                src={bumicert.coverImageUrl}
+                alt={bumicert.title}
+                fill
+                className="object-cover scale-105 group-hover:scale-100 transition-transform duration-700"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-muted" />
+            )}
 
             {/* header overlay - gradient bg, more opaque */}
             <div className="absolute inset-0 bottom-[75%] bg-linear-to-b from-background via-background/70 to-transparent" />
@@ -69,13 +73,19 @@ export function BumicertCard({ bumicert }: { bumicert: MockBumicert }) {
               {/* Org logo + name */}
               <div className="flex items-center gap-2 min-w-0">
                 <div className="h-6 w-6 rounded-full bg-white border border-black/10 shadow-sm overflow-hidden shrink-0">
-                  <Image
-                    src={bumicert.logoUrl}
-                    alt={bumicert.organizationName}
-                    width={24}
-                    height={24}
-                    className="object-cover"
-                  />
+                  {bumicert.logoUrl ? (
+                    <Image
+                      src={bumicert.logoUrl}
+                      alt={bumicert.organizationName}
+                      width={24}
+                      height={24}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center text-[8px] font-bold text-muted-foreground">
+                      {bumicert.organizationName.charAt(0)}
+                    </div>
+                  )}
                 </div>
                 <span className="text-xs font-medium text-foreground truncate drop-shadow-md">
                   {bumicert.organizationName}
@@ -119,7 +129,7 @@ export function BumicertCard({ bumicert }: { bumicert: MockBumicert }) {
             {/* Title */}
             <h3
               className="text-base font-medium text-foreground leading-snug line-clamp-1"
-              style={{ fontFamily: "var(--font-baskerville)" }}
+              style={{ fontFamily: "var(--font-garamond-var)" }}
             >
               {bumicert.title}
             </h3>

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import {
   Geist,
   Geist_Mono,
-  Baskervville,
   Cormorant_Garamond,
   Instrument_Serif,
 } from "next/font/google";
@@ -17,13 +16,6 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
-const baskervville = Baskervville({
-  variable: "--font-baskerville",
-  subsets: ["latin"],
-  weight: ["400"],
-  style: ["normal", "italic"],
 });
 
 const cormorantGaramond = Cormorant_Garamond({
@@ -60,7 +52,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${baskervville.variable} ${cormorantGaramond.variable} ${instrumentSerif.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${cormorantGaramond.variable} ${instrumentSerif.variable} antialiased`}
       >
         <Providers>{children}</Providers>
       </body>

@@ -41,7 +41,7 @@
   --radius: 0.75rem;
 
   /* Serif font references */
-  --font-serif: var(--font-baskerville);
+  --font-serif: var(--font-garamond-var);
   --font-garamond: var(--font-garamond-var);
   --font-instrument: var(--font-instrument-serif-var);
 }
@@ -100,7 +100,7 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-baskerville);
+  --font-serif: var(--font-garamond-var);
   --font-garamond: var(--font-garamond-var);
   --font-instrument: var(--font-instrument-serif-var);
 

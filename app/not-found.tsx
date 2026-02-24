@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { links } from "@/lib/links";
 
 export default function NotFound() {
   return (
@@ -13,7 +14,7 @@ export default function NotFound() {
         This page doesn't exist. Maybe it was moved, or maybe it never existed at all.
       </p>
       <Link
-        href="/"
+        href={links.home}
         className="inline-flex items-center gap-2 h-9 px-5 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
       >
         Back to Home

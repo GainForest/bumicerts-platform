@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { ChevronDownIcon, MapPinIcon } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-import type { MockBumicert } from "@/lib/mock-data";
+import type { BumicertData } from "@/lib/types";
 
 function CollapsibleDescription({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -89,7 +89,7 @@ function SiteBoundariesPlaceholder({ country }: { country: string }) {
   );
 }
 
-export function BumicertBody({ bumicert }: { bumicert: MockBumicert }) {
+export function BumicertBody({ bumicert }: { bumicert: BumicertData }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}

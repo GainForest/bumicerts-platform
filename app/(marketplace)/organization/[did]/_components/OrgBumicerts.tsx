@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRightIcon } from "lucide-react";
 import { BumicertCard, cardVariants } from "@/app/(marketplace)/explore/_components/BumicertCard";
-import type { MockBumicert } from "@/lib/mock-data";
+import type { BumicertData } from "@/lib/types";
 
 const containerVariants = {
   hidden: {},
@@ -15,7 +15,7 @@ export function OrgBumicerts({
   bumicerts,
   orgDid,
 }: {
-  bumicerts: MockBumicert[];
+  bumicerts: BumicertData[];
   orgDid: string;
 }) {
   return (

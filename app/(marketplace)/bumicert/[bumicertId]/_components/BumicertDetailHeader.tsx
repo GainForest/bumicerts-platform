@@ -55,12 +55,12 @@ function CopyButton({ bumicertId }: { bumicertId: string }) {
 }
 
 export function BumicertDetailHeader({ bumicertId }: { bumicertId: string }) {
-  const { setLeftContent, setRightContent } = useHeaderContext();
+  const { setLeftContent, setRightContent, isUnauthenticated } = useHeaderContext();
 
   useEffect(() => {
     setLeftContent(<CopyButton bumicertId={bumicertId} />);
     setRightContent(
-      <Button variant="default" size="sm" className="gap-1.5">
+      <Button variant={isUnauthenticated ? "outline" : "default"} size="sm" className="gap-1.5">
         <ExternalLinkIcon className="h-3.5 w-3.5" />
         Fund this project
       </Button>
@@ -69,7 +69,7 @@ export function BumicertDetailHeader({ bumicertId }: { bumicertId: string }) {
       setLeftContent(null);
       setRightContent(null);
     };
-  }, [bumicertId, setLeftContent, setRightContent]);
+  }, [bumicertId, isUnauthenticated, setLeftContent, setRightContent]);
 
   return null;
 }

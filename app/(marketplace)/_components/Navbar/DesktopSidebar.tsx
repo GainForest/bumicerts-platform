@@ -261,6 +261,7 @@ export function DesktopSidebar() {
       {/* Footer section */}
       <div className="flex flex-col gap-2">
         <div className="h-px bg-border" />
+
         <ul className="flex flex-col gap-0.5">
           {FOOTER_LINKS.map((link) => (
             <li key={link.href}>

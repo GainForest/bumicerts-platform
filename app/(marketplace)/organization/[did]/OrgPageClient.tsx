@@ -6,15 +6,15 @@ import { OrgSubHero } from "./_components/OrgSubHero";
 import { OrgAbout } from "./_components/OrgAbout";
 import { OrgBumicerts } from "./_components/OrgBumicerts";
 import { OrgPageHeader } from "./_components/OrgPageHeader";
-import type { MockOrganization, MockBumicert } from "@/lib/mock-data";
+import type { OrganizationData, BumicertData } from "@/lib/types";
 import { motion } from "framer-motion";
 
 export function OrgPageClient({
   organization,
   bumicerts,
 }: {
-  organization: MockOrganization;
-  bumicerts: MockBumicert[];
+  organization: OrganizationData;
+  bumicerts: BumicertData[];
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingName, setEditingName] = useState(organization.displayName);

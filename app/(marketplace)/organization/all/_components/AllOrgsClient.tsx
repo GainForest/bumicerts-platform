@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { OrganizationCard } from "./OrganizationCard";
 import { useHeaderContext } from "@/app/(marketplace)/_components/Header/context";
-import type { MockOrganization } from "@/lib/mock-data";
+import type { OrganizationData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const COUNTRY_MAP: Record<string, { emoji: string; name: string }> = {
@@ -34,7 +34,7 @@ const containerVariants = {
 
 // ── Main client component ─────────────────────────────
 
-export function AllOrgsClient({ organizations }: { organizations: MockOrganization[] }) {
+export function AllOrgsClient({ organizations }: { organizations: OrganizationData[] }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("bumicerts");
   const [countryFilter, setCountryFilter] = useState<string | null>(null);

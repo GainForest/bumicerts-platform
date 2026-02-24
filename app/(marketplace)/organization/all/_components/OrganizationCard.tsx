@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { BuildingIcon, LeafIcon } from "lucide-react";
-import type { MockOrganization } from "@/lib/mock-data";
+import type { OrganizationData } from "@/lib/types";
 
 const COUNTRY_MAP: Record<string, { emoji: string; name: string }> = {
   ID: { emoji: "🇮🇩", name: "Indonesia" },
@@ -25,7 +25,7 @@ export const orgCardVariants = {
   },
 };
 
-export function OrganizationCard({ org }: { org: MockOrganization }) {
+export function OrganizationCard({ org }: { org: OrganizationData }) {
   const countryData = COUNTRY_MAP[org.country];
 
   return (

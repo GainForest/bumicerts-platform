@@ -3,6 +3,7 @@
 import { useHeaderContext } from "./context";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProgressiveBlur } from "@/components/ui/progressive-blur";
+import { AuthButton } from "@/components/auth/AuthButton";
 
 export function Header() {
   const { leftContent, rightContent } = useHeaderContext();
@@ -48,7 +49,7 @@ export function Header() {
         </div>
 
         {/* Right slot */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           <AnimatePresence mode="wait">
             {rightContent ? (
               <motion.div
@@ -62,6 +63,7 @@ export function Header() {
               </motion.div>
             ) : null}
           </AnimatePresence>
+          <AuthButton />
         </div>
       </div>
     </div>

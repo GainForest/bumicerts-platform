@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { useAtprotoStore } from "@/components/stores/atproto";
 
 interface HeaderContextValue {
   leftContent: ReactNode;
@@ -9,6 +10,8 @@ interface HeaderContextValue {
   setRightContent: (node: ReactNode) => void;
   subHeaderContent: ReactNode;
   setSubHeaderContent: (node: ReactNode) => void;
+  /** True when the user is confirmed unauthenticated — use to downgrade primary CTAs */
+  isUnauthenticated: boolean;
 }
 
 const HeaderContext = createContext<HeaderContextValue>({
@@ -18,12 +21,16 @@ const HeaderContext = createContext<HeaderContextValue>({
   setRightContent: () => {},
   subHeaderContent: null,
   setSubHeaderContent: () => {},
+  isUnauthenticated: false,
 });
 
 export function HeaderProvider({ children }: { children: ReactNode }) {
   const [leftContent, setLeftContentState] = useState<ReactNode>(null);
   const [rightContent, setRightContentState] = useState<ReactNode>(null);
   const [subHeaderContent, setSubHeaderContentState] = useState<ReactNode>(null);
+
+  const auth = useAtprotoStore((s) => s.auth);
+  const isUnauthenticated = auth.status === "UNAUTHENTICATED";
 
   const setLeftContent = useCallback((node: ReactNode) => setLeftContentState(node), []);
   const setRightContent = useCallback((node: ReactNode) => setRightContentState(node), []);
@@ -38,6 +45,7 @@ export function HeaderProvider({ children }: { children: ReactNode }) {
         setRightContent,
         subHeaderContent,
         setSubHeaderContent,
+        isUnauthenticated,
       }}
     >
       {children}
