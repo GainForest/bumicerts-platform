@@ -43,8 +43,10 @@ export default function MarketplaceLayout({
           </div>
 
           {/* Mobile: full width with bottom nav */}
-          <div className="md:hidden flex flex-col min-h-screen">
-            <div className="flex-1 pb-16 overflow-y-auto">
+          <div className="md:hidden flex flex-col h-screen overflow-hidden">
+            <div className="flex-1 relative overflow-y-auto pb-16">
+              {/* Header overlays content for translucency effect, same as desktop */}
+              <Header />
               {children}
             </div>
             <MobileBottomNav />

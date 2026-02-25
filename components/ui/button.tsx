@@ -1,11 +1,30 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
+import { motion, type HTMLMotionProps } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+// Pick only the Framer Motion-specific props (not ones that conflict with HTML button events)
+type MotionOnlyProps = Pick<
+  HTMLMotionProps<"button">,
+  | "initial"
+  | "animate"
+  | "exit"
+  | "variants"
+  | "whileHover"
+  | "whileTap"
+  | "whileFocus"
+  | "whileDrag"
+  | "whileInView"
+  | "layoutId"
+  | "layoutRoot"
+  | "layout"
+  | "transition"
+>;
+
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    MotionOnlyProps {
   variant?:
     | "default"
     | "destructive"
@@ -13,7 +32,7 @@ export interface ButtonProps
     | "secondary"
     | "ghost"
     | "link";
-  size?: "default" | "sm" | "lg" | "icon" | "icon-sm";
+  size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-xs";
   asChild?: boolean;
 }
 
@@ -36,6 +55,7 @@ const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
   lg: "h-10 px-8 text-base",
   icon: "h-9 w-9",
   "icon-sm": "h-7 w-7",
+  "icon-xs": "size-6 rounded-md",
 };
 
 /**
@@ -48,7 +68,7 @@ export function buttonVariants({
   className,
 }: {
   variant?: ButtonProps["variant"];
-  size?: ButtonProps["size"];
+  size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-xs";
   className?: string;
 } = {}): string {
   return cn(
@@ -61,14 +81,25 @@ export function buttonVariants({
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
-    { className, variant = "default", size = "default", children, ...props },
+    { className, variant = "default", size = "default", children, whileTap, transition, initial, animate, exit, variants, whileHover, whileFocus, whileDrag, whileInView, layoutId, layoutRoot, layout, ...props },
     ref
   ) => {
     return (
       <motion.button
         ref={ref}
-        whileTap={{ scale: 0.97 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        whileTap={whileTap ?? { scale: 0.97 }}
+        transition={transition ?? { type: "spring", stiffness: 400, damping: 25 }}
+        initial={initial}
+        animate={animate}
+        exit={exit}
+        variants={variants}
+        whileHover={whileHover}
+        whileFocus={whileFocus}
+        whileDrag={whileDrag}
+        whileInView={whileInView}
+        layoutId={layoutId}
+        layoutRoot={layoutRoot}
+        layout={layout}
         className={cn(
           "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
           variantClasses[variant],

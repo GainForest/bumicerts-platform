@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useHeaderContext } from "@/app/(marketplace)/_components/Header/context";
+import { HeaderContent } from "@/app/(marketplace)/_components/Header/HeaderContent";
 import { CopyIcon, ExternalLinkIcon, CheckIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -55,21 +56,21 @@ function CopyButton({ bumicertId }: { bumicertId: string }) {
 }
 
 export function BumicertDetailHeader({ bumicertId }: { bumicertId: string }) {
-  const { setLeftContent, setRightContent, isUnauthenticated } = useHeaderContext();
+  const { isUnauthenticated } = useHeaderContext();
 
-  useEffect(() => {
-    setLeftContent(<CopyButton bumicertId={bumicertId} />);
-    setRightContent(
-      <Button variant={isUnauthenticated ? "outline" : "default"} size="sm" className="gap-1.5">
-        <ExternalLinkIcon className="h-3.5 w-3.5" />
-        Fund this project
-      </Button>
-    );
-    return () => {
-      setLeftContent(null);
-      setRightContent(null);
-    };
-  }, [bumicertId, isUnauthenticated, setLeftContent, setRightContent]);
-
-  return null;
+  return (
+    <HeaderContent
+      left={<CopyButton bumicertId={bumicertId} />}
+      right={
+        <Button
+          variant={isUnauthenticated ? "outline" : "default"}
+          size="sm"
+          className="gap-1.5"
+        >
+          <ExternalLinkIcon className="h-3.5 w-3.5" />
+          Fund this project
+        </Button>
+      }
+    />
+  );
 }

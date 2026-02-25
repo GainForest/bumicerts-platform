@@ -16,7 +16,7 @@ function AuthSkeleton() {
   return (
     <div className="flex items-center gap-2 px-1 py-1 animate-pulse">
       <div className="h-7 w-7 rounded-full bg-muted" />
-      <div className="h-3 w-20 rounded bg-muted" />
+      <div className="hidden sm:block h-3 w-20 rounded bg-muted" />
     </div>
   );
 }
@@ -96,12 +96,13 @@ function AuthenticatedMenu({ did, handle, displayName, avatar }: {
           )}
         </div>
 
-        {/* Name */}
-        <span className="text-sm font-medium text-foreground max-w-[120px] truncate">
+        {/* Name — hidden on small screens */}
+        <span className="hidden sm:block text-sm font-medium text-foreground max-w-[120px] truncate">
           {displayLabel}
         </span>
 
         <motion.div
+          className="hidden sm:block"
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2 }}
         >

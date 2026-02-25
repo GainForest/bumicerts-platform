@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   SearchIcon,
@@ -9,7 +9,6 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { OrganizationCard } from "./OrganizationCard";
-import { useHeaderContext } from "@/app/(marketplace)/_components/Header/context";
 import type { OrganizationData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -39,12 +38,6 @@ export function AllOrgsClient({ organizations }: { organizations: OrganizationDa
   const [sort, setSort] = useState("bumicerts");
   const [countryFilter, setCountryFilter] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const { setRightContent } = useHeaderContext();
-
-  // Clear header slots on unmount
-  useEffect(() => {
-    return () => setRightContent(null);
-  }, [setRightContent]);
 
   const countries = useMemo(
     () => Array.from(new Set(organizations.map((o) => o.country))),

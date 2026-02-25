@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
-import { useHeaderContext } from "@/app/(marketplace)/_components/Header/context";
 import { PencilIcon, CheckIcon, XIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { HeaderContent } from "@/app/(marketplace)/_components/Header/HeaderContent";
 
 function EditControls({
   isEditing,
@@ -77,19 +76,16 @@ export function OrgPageHeader({
   onSave: () => void;
   onCancel: () => void;
 }) {
-  const { setRightContent } = useHeaderContext();
-
-  useEffect(() => {
-    setRightContent(
-      <EditControls
-        isEditing={isEditing}
-        onStartEdit={onStartEdit}
-        onSave={onSave}
-        onCancel={onCancel}
-      />
-    );
-    return () => setRightContent(null);
-  }, [isEditing, onStartEdit, onSave, onCancel, setRightContent]);
-
-  return null;
+  return (
+    <HeaderContent
+      right={
+        <EditControls
+          isEditing={isEditing}
+          onStartEdit={onStartEdit}
+          onSave={onSave}
+          onCancel={onCancel}
+        />
+      }
+    />
+  );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   SearchIcon,
   SlidersHorizontalIcon,
@@ -15,6 +15,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useHeaderContext } from "../../_components/Header/context";
+import { HeaderContent } from "../../_components/Header/HeaderContent";
 import type { BumicertData } from "@/lib/types";
 import { useModal } from "@/components/ui/modal/context";
 import {
@@ -235,7 +236,7 @@ export function ExploreHeaderSlots({
   activeFilterCount: number;
   bumicerts: BumicertData[];
 }) {
-  const { setRightContent, isUnauthenticated } = useHeaderContext();
+  const { isUnauthenticated } = useHeaderContext();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const modal = useModal();
   const filterCategories = buildFilterCategories(bumicerts);
@@ -263,29 +264,27 @@ export function ExploreHeaderSlots({
     await modal.show();
   };
 
-  // Right slot: create button
-  useEffect(() => {
-    setRightContent(
-      <Link href="/bumicert/create">
-        <motion.span
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full text-sm font-medium px-3.5 py-1.5 transition-colors border",
-            isUnauthenticated
-              ? "border-border text-foreground hover:bg-muted"
-              : "bg-primary text-primary-foreground border-transparent hover:bg-primary/90"
-          )}
-        >
-          <PlusIcon className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Create Project</span>
-        </motion.span>
-      </Link>
-    );
-    return () => setRightContent(null);
-  }, [isUnauthenticated, setRightContent]);
-
   return (
+    <>
+    <HeaderContent
+      right={
+        <Link href="/bumicert/create">
+          <motion.span
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full text-sm font-medium px-3.5 py-1.5 transition-colors border",
+              isUnauthenticated
+                ? "border-border text-foreground hover:bg-muted"
+                : "bg-primary text-primary-foreground border-transparent hover:bg-primary/90"
+            )}
+          >
+            <PlusIcon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Create Project</span>
+          </motion.span>
+        </Link>
+      }
+    />
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
@@ -411,5 +410,6 @@ export function ExploreHeaderSlots({
         </button>
       </div>
     </motion.div>
+    </>
   );
 }
