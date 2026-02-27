@@ -1,4 +1,3 @@
-import { allowedPDSDomains } from "@/lib/config/gainforest-sdk";
 import { createClient } from "@supabase/supabase-js";
 import {
   createATProtoSDK,
@@ -168,9 +167,6 @@ export const epdsStateStore = createEpdsStateStore(
 
 export const atprotoSDK = createATProtoSDK({
   oauth: isLoopback() ? DEV_OAUTH_CONFIG : PROD_OAUTH_CONFIG,
-  servers: {
-    pds: `https://${allowedPDSDomains[0]}`,
-  },
   storage: {
     sessionStore,
     stateStore: createSupabaseStateStore(supabase, APP_ID),

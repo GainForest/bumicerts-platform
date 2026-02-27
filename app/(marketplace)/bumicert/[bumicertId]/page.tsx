@@ -9,6 +9,7 @@ import type {
   AppGainforestOrganizationInfo,
   OrgHypercertsClaimActivity,
 } from "gainforest-sdk/lex-api";
+import type { GetRecordResponse } from "gainforest-sdk/types";
 import { BumicertHero } from "./_components/Hero";
 import { BumicertBody } from "./_components/Body";
 import { BumicertDetailHeader } from "./_components/BumicertDetailHeader";
@@ -92,7 +93,7 @@ export async function generateMetadata({
 
   if (error || !response) return { title: "Bumicert Not Found" };
 
-  const activity = response.value;
+  const activity = (response as GetRecordResponse<OrgHypercertsClaimActivity.Record>).value;
   return {
     title: `${activity.title} — Bumicerts`,
     description: activity.shortDescription ?? activity.description?.slice(0, 160) ?? "",
@@ -136,7 +137,10 @@ export default async function BumicertDetailPage({
     throw new Error("Failed to load this bumicert. Please try again.");
   }
 
-  const [orgInfoResponse, activityResponse] = results;
+  const [orgInfoResponse, activityResponse] = results as [
+    GetRecordResponse<AppGainforestOrganizationInfo.Record>,
+    GetRecordResponse<OrgHypercertsClaimActivity.Record>,
+  ];
   const bumicert = buildBumicertData(
     did,
     rkey,

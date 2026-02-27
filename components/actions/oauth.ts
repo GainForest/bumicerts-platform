@@ -6,7 +6,6 @@ import {
   clearAppSession,
   AppSessionData,
 } from "gainforest-sdk/oauth";
-import { getBlobUrl } from "gainforest-sdk/utilities/atproto";
 import { allowedPDSDomains } from "@/lib/config/gainforest-sdk";
 
 /**
@@ -155,25 +154,20 @@ export async function getProfile(did: string): Promise<ProfileData | null> {
     }
 
     // Get repository and fetch profile
-    const repo = atprotoSDK.repository(session);
-    const profile = await repo.profile.get();
+    // repository() is now async and returns Promise<Repository>
+    const repo = await atprotoSDK.repository(session);
 
-    // Handle avatar - could be URL string or blob reference object
-    let avatarUrl: string | undefined = undefined;
-    if (profile.avatar) {
-      if (typeof profile.avatar === "string") {
-        // Already a URL
-        avatarUrl = profile.avatar;
-      } else if (typeof profile.avatar === "object") {
-        // It's a blob reference, convert to URL
-        avatarUrl = getBlobUrl(did, profile.avatar, allowedPDSDomains[0]);
-      }
-    }
+    // Try certified profile first, fall back to Bsky profile
+    const certifiedProfile = await repo.profile.getCertifiedProfile();
+    const profile = certifiedProfile ?? await repo.profile.getBskyProfile();
+
+    // Avatar is already a string URL in both CertifiedProfile and BskyProfile
+    const avatarUrl: string | undefined = profile?.avatar ?? undefined;
 
     return {
-      handle: profile.handle,
-      displayName: profile.displayName,
-      description: profile.description,
+      handle: profile?.handle ?? did,
+      displayName: profile?.displayName,
+      description: profile?.description,
       avatar: avatarUrl,
     };
   } catch (error) {

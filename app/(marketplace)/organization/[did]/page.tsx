@@ -6,6 +6,8 @@ import { TRPCError } from "@trpc/server";
 import { orgInfoToOrganizationData, claimsToBumicertDataArray } from "@/lib/adapters";
 import Container from "@/components/ui/container";
 import { OrgPageClient } from "./OrgPageClient";
+import type { GetRecordResponse } from "gainforest-sdk/types";
+import type { AppGainforestOrganizationInfo } from "gainforest-sdk/lex-api";
 
 const pdsDomain = allowedPDSDomains[0];
 
@@ -24,7 +26,7 @@ export async function generateMetadata({
 
   if (error || !response) return { title: "Organization — Bumicerts" };
 
-  const org = response.value;
+  const org = (response as GetRecordResponse<AppGainforestOrganizationInfo.Record>).value;
   return {
     title: `${org.displayName} — Bumicerts`,
     description: org.shortDescription?.text ?? "",
@@ -60,7 +62,10 @@ export default async function OrganizationPage({
     throw new Error("Failed to load organization. Please try again.");
   }
 
-  const [orgInfoResponse, allClaims] = results;
+  const [orgInfoResponse, allClaims] = results as [
+    GetRecordResponse<AppGainforestOrganizationInfo.Record>,
+    Parameters<typeof claimsToBumicertDataArray>[0],
+  ];
   const orgInfo = orgInfoResponse.value;
 
   // Visibility check — if Unlisted, only the owner can see it (we don't gate for now)
@@ -69,7 +74,7 @@ export default async function OrganizationPage({
   }
 
   // Count bumicerts for this org
-  const orgClaims = (allClaims as Parameters<typeof claimsToBumicertDataArray>[0]).filter(
+  const orgClaims = allClaims.filter(
     (c: { repo: { did: string } }) => c.repo.did === did
   );
   const organization = orgInfoToOrganizationData(did, orgInfo, orgClaims.length);
