@@ -35,6 +35,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
+const CountrySelectorModal = dynamic(
+  () => import("@/components/modals/country-selector"),
+  { ssr: false }
+);
+const ImageEditorModal = dynamic(
+  () =>
+    import("@/components/modals/image-editor").then((m) => ({
+      default: m.ImageEditorModal,
+    })),
+  { ssr: false }
+);
 import { format, parseISO } from "date-fns";
 import { links } from "@/lib/links";
 import Image from "next/image";

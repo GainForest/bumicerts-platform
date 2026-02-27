@@ -25,11 +25,6 @@ export function StepEmail() {
   const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email);
   const isValidCode = data.inviteCode.trim().length > 0;
 
-  // Clear any errors from other steps on mount
-  useEffect(() => {
-    setError(null);
-  }, [setError]);
-
   // Countdown timer for rate limit
   useEffect(() => {
     if (!retryAfter) {
