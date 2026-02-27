@@ -97,10 +97,12 @@ export async function checkSession(): Promise<
   try {
     const oauthSession = await atprotoSDK.restoreSession(session.did);
     if (!oauthSession) {
+      console.warn("COULD NOT RESTORE SESSION")
       await clearAppSession();
       return { authenticated: false };
     }
-  } catch {
+  } catch (e) {
+    console.error("COULD NOT RESTORE SESSION", e)
     // Session is dead — clear the stale cookie so the UI stays in sync
     await clearAppSession();
     return { authenticated: false };
@@ -176,8 +178,9 @@ export async function getProfile(did: string): Promise<ProfileData | null> {
     };
   } catch (error) {
     console.error("Error fetching profile:", error);
-    // Clear the stale session so the UI reflects the true logged-out state
-    await clearAppSession();
+    // Don't clear the session here — restoreSession may fail for ePDS sessions
+    // due to SDK version mismatch, but the session is still valid in Supabase.
+    // The user stays logged in, just without profile data.
     return null;
   }
 }

@@ -14,7 +14,99 @@ interface LoginModalProps {
   onClose: () => void;
 }
 
-export function LoginModal({ onClose }: LoginModalProps) {
+// ─── Pill Toggle ──────────────────────────────────────────────────────────────
+
+function PillToggle({
+  active,
+  onChange,
+}: {
+  active: "handle" | "email";
+  onChange: (tab: "handle" | "email") => void;
+}) {
+  return (
+    <div className="flex w-full rounded-full bg-muted p-1">
+      <button
+        type="button"
+        onClick={() => onChange("handle")}
+        className={`flex-1 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+          active === "handle"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        Handle
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("email")}
+        className={`flex-1 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+          active === "email"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        Email
+      </button>
+    </div>
+  );
+}
+
+// ─── Email Form ───────────────────────────────────────────────────────────────
+
+function EmailForm() {
+  const [email, setEmail] = useState("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsRedirecting(true);
+    const url = email
+      ? `/api/oauth/epds/login?email=${encodeURIComponent(email)}`
+      : "/api/oauth/epds/login";
+    window.location.href = url;
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1.5">
+        <label htmlFor="email" className="text-sm font-medium">
+          Email
+        </label>
+        <Input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          autoComplete="email"
+          autoFocus
+          disabled={isRedirecting}
+        />
+        <p className="text-xs text-muted-foreground">
+          Enter your email for a verification code, or continue without
+        </p>
+      </div>
+
+      <Button type="submit" disabled={isRedirecting} className="w-full">
+        {isRedirecting ? (
+          <>
+            <LoaderIcon className="h-4 w-4 animate-spin" />
+            Redirecting…
+          </>
+        ) : (
+          <>
+            Continue
+            <ArrowRightIcon className="h-4 w-4" />
+          </>
+        )}
+      </Button>
+    </form>
+  );
+}
+
+// ─── Handle Form ──────────────────────────────────────────────────────────────
+
+function HandleForm() {
   const [handle, setHandle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -45,6 +137,99 @@ export function LoginModal({ onClose }: LoginModalProps) {
   };
 
   return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1.5">
+        <label htmlFor="handle" className="text-sm font-medium">
+          Username
+        </label>
+        <div className="flex rounded-md overflow-hidden border border-input">
+          <Input
+            id="handle"
+            type="text"
+            value={handle}
+            onChange={(e) => setHandle(e.target.value)}
+            placeholder="your-handle"
+            autoComplete="username"
+            autoFocus
+            disabled={isPending}
+            className="flex-1 rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+          <span className="flex items-center px-3 text-xs text-muted-foreground bg-muted border-l border-input shrink-0">
+            .{domain}
+          </span>
+        </div>
+
+        <AnimatePresence mode="wait">
+          {handleError ? (
+            <motion.p
+              key="error"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="text-xs text-destructive"
+            >
+              {handleError}
+            </motion.p>
+          ) : handleWithDomain ? (
+            <motion.p
+              key="preview"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="text-xs text-muted-foreground"
+            >
+              Signing in as{" "}
+              <span className="font-mono">{handleWithDomain}</span>
+            </motion.p>
+          ) : null}
+        </AnimatePresence>
+      </div>
+
+      <AnimatePresence>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="text-xs text-destructive"
+          >
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
+
+      <Button
+        type="submit"
+        disabled={!handle.trim() || !!handleError || isPending}
+        className="w-full"
+      >
+        {isPending ? (
+          <>
+            <LoaderIcon className="h-4 w-4 animate-spin" />
+            Redirecting…
+          </>
+        ) : (
+          <>
+            Continue
+            <ArrowRightIcon className="h-4 w-4" />
+          </>
+        )}
+      </Button>
+    </form>
+  );
+}
+
+// ─── Login Modal ──────────────────────────────────────────────────────────────
+
+export function LoginModal({ onClose }: LoginModalProps) {
+  const [activeTab, setActiveTab] = useState<"handle" | "email">("handle");
+  const hasEpds = !!process.env.NEXT_PUBLIC_EPDS_URL;
+
+  const domain = allowedPDSDomains[0];
+
+  return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97, y: 8 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -72,93 +257,48 @@ export function LoginModal({ onClose }: LoginModalProps) {
           Welcome back
         </h2>
         <p className="text-sm text-muted-foreground">
-          Sign in with your{" "}
-          <span className="text-foreground font-medium">{domain}</span> account
+          {hasEpds && activeTab === "email" ? (
+            "Sign in with your email"
+          ) : (
+            <>
+              Sign in with your{" "}
+              <span className="text-foreground font-medium">{domain}</span> account
+            </>
+          )}
         </p>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor="handle" className="text-sm font-medium">
-            Username
-          </label>
-          <div className="flex rounded-md overflow-hidden border border-input">
-            <Input
-              id="handle"
-              type="text"
-              value={handle}
-              onChange={(e) => setHandle(e.target.value)}
-              placeholder="your-handle"
-              autoComplete="username"
-              autoFocus
-              disabled={isPending}
-              className="flex-1 rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-            />
-            <span className="flex items-center px-3 text-xs text-muted-foreground bg-muted border-l border-input shrink-0">
-              .{domain}
-            </span>
-          </div>
-
-          <AnimatePresence mode="wait">
-            {handleError ? (
-              <motion.p
-                key="error"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.15 }}
-                className="text-xs text-destructive"
-              >
-                {handleError}
-              </motion.p>
-            ) : handleWithDomain ? (
-              <motion.p
-                key="preview"
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.15 }}
-                className="text-xs text-muted-foreground"
-              >
-                Signing in as{" "}
-                <span className="font-mono">{handleWithDomain}</span>
-              </motion.p>
-            ) : null}
-          </AnimatePresence>
+      {/* Pill Toggle (only when ePDS is available) */}
+      {hasEpds && (
+        <div className="mb-6">
+          <PillToggle active={activeTab} onChange={setActiveTab} />
         </div>
+      )}
 
-        <AnimatePresence>
-          {error && (
-            <motion.p
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="text-xs text-destructive"
-            >
-              {error}
-            </motion.p>
-          )}
-        </AnimatePresence>
-
-        <Button
-          type="submit"
-          disabled={!handle.trim() || !!handleError || isPending}
-          className="w-full"
-        >
-          {isPending ? (
-            <>
-              <LoaderIcon className="h-4 w-4 animate-spin" />
-              Redirecting…
-            </>
-          ) : (
-            <>
-              Continue
-              <ArrowRightIcon className="h-4 w-4" />
-            </>
-          )}
-        </Button>
-      </form>
+      {/* Form */}
+      <AnimatePresence mode="wait">
+        {hasEpds && activeTab === "email" ? (
+          <motion.div
+            key="email"
+            initial={{ opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <EmailForm />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="handle"
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <HandleForm />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex items-center gap-3 my-4">
         <div className="flex-1 h-px bg-border" />

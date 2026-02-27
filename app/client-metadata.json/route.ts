@@ -1,4 +1,4 @@
-import { OAUTH_SCOPE, resolvePublicUrl } from "@/lib/atproto";
+import { OAUTH_SCOPE, resolvePublicUrl, isLoopback } from "@/lib/atproto";
 import { NextResponse } from "next/server";
 
 /**
@@ -16,8 +16,13 @@ import { NextResponse } from "next/server";
  * @see https://atproto.com/specs/oauth
  */
 export async function GET() {
-  const isDev = process.env.NODE_ENV === "development";
   const PUBLIC_URL = resolvePublicUrl();
+  const epdsEnabled = !!process.env.NEXT_PUBLIC_EPDS_URL;
+
+  const redirectUris = [`${PUBLIC_URL}/api/oauth/callback`];
+  if (epdsEnabled) {
+    redirectUris.push(`${PUBLIC_URL}/api/oauth/epds/callback`);
+  }
 
   /**
    * Development Metadata (Loopback Client)
@@ -34,7 +39,7 @@ export async function GET() {
     logo_uri: `${PUBLIC_URL}/logo.png`,
     tos_uri: `${PUBLIC_URL}/terms`,
     policy_uri: `${PUBLIC_URL}/privacy`,
-    redirect_uris: [`${PUBLIC_URL}/api/oauth/callback`],
+    redirect_uris: redirectUris,
     grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
     scope: OAUTH_SCOPE,
@@ -59,23 +64,22 @@ export async function GET() {
     logo_uri: `${PUBLIC_URL}/logo.png`,
     tos_uri: `${PUBLIC_URL}/terms`,
     policy_uri: `${PUBLIC_URL}/privacy`,
-    redirect_uris: [`${PUBLIC_URL}/api/oauth/callback`],
+    redirect_uris: redirectUris,
     grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
     scope: OAUTH_SCOPE,
-    token_endpoint_auth_method: "private_key_jwt",
-    token_endpoint_auth_signing_alg: "ES256",
+    token_endpoint_auth_method: "none",
     application_type: "web",
     dpop_bound_access_tokens: true,
     jwks_uri: `${PUBLIC_URL}/.well-known/jwks.json`,
   };
 
-  const metadata = isDev ? DEV_METADATA : PROD_METADATA;
+  const metadata = isLoopback() ? DEV_METADATA : PROD_METADATA;
 
   return NextResponse.json(metadata, {
     headers: {
       "Content-Type": "application/json",
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": "public, max-age=60",
     },
   });
 }

@@ -5,6 +5,7 @@ import {
   createSupabaseSessionStore,
   createSupabaseStateStore,
 } from "gainforest-sdk/oauth";
+import { createEpdsStateStore } from "@/lib/epds/state-store";
 
 export const OAUTH_SCOPE = "atproto transition:generic"
 
@@ -27,24 +28,28 @@ const isDev = process.env.NODE_ENV === "development";
  * We need to set the production url to NEXT_PUBLIC_BASE_URL and for the previews we just use VERCEL_BRANCH_URL
  *
  * Priority:
- * 1. NEXT_PUBLIC_BASE_URL — explicit override (local dev with loopback, ngrok, or custom config)
+ * 1. NEXT_PUBLIC_BASE_URL — explicit override (ngrok, custom domain, etc.) — always wins
  * 2. VERCEL_BRANCH_URL — stable per-branch URL for preview deploys (auto-set by Vercel)
- * 3. Default to http://127.0.0.1:3000 in development mode (loopback OAuth)
+ * 3. VERCEL_URL — fallback Vercel auto-detected URL
+ * 4. Default to http://127.0.0.1:3000 in development mode (loopback OAuth)
  * 
  * Disclaimer when testing previews only works with the branch name preview and not with the commit name preview
  */
 export const resolvePublicUrl = (): string => {
+  // 1. Explicit override — always wins (ngrok, custom domain, etc.)
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  // 2. Vercel auto-detection
   if (process.env.VERCEL_BRANCH_URL) {
     return `https://${process.env.VERCEL_BRANCH_URL}`;
   }
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
+  // 3. Local development fallback
   if (isDev) {
     return `http://127.0.0.1:${process.env.PORT ?? 3000}`;
-  }
-  if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
   }
   throw new Error(
     "Set NEXT_PUBLIC_BASE_URL, or deploy to Vercel (provides VERCEL_PROJECT_PRODUCTION_URL / VERCEL_BRANCH_URL automatically)"
@@ -52,6 +57,17 @@ export const resolvePublicUrl = (): string => {
 };
 
 const PUBLIC_URL = resolvePublicUrl();
+
+/**
+ * Returns true if the resolved public URL is a loopback address.
+ * Used to decide between loopback (native) and web OAuth config.
+ * This correctly handles ngrok/tunnels where NODE_ENV is 'development'
+ * but the URL is publicly accessible.
+ */
+export const isLoopback = (): boolean => {
+  const url = resolvePublicUrl();
+  return url.includes('127.0.0.1') || url.includes('localhost');
+};
 
 /**
  * ATProto SDK instance configured for OAuth authentication.
@@ -77,9 +93,24 @@ if (!atprotoJwkPrivate) {
  * - Actual redirect URI uses 127.0.0.1:3000
  * - No client authentication required (token_endpoint_auth_method: "none")
  * - Application type: "native"
+ * - When NEXT_PUBLIC_EPDS_URL is set, both redirect URIs are embedded in the client_id
  */
+const epdsEnabled = !!process.env.NEXT_PUBLIC_EPDS_URL;
+const redirectUris = [`${PUBLIC_URL}/api/oauth/callback`];
+if (epdsEnabled) {
+  redirectUris.push(`${PUBLIC_URL}/api/oauth/epds/callback`);
+}
+
+// For loopback client_id, embed all redirect URIs using URLSearchParams.append
+const clientIdParams = new URLSearchParams();
+clientIdParams.set('scope', OAUTH_SCOPE);
+for (const uri of redirectUris) {
+  clientIdParams.append('redirect_uri', uri);
+}
+const devClientId = `http://localhost?${clientIdParams.toString()}`;
+
 export const DEV_OAUTH_CONFIG = {
-  clientId: `http://localhost?scope=${encodeURIComponent(OAUTH_SCOPE)}&redirect_uri=${encodeURIComponent(`${PUBLIC_URL}/api/oauth/callback`)}`,
+  clientId: devClientId,
   redirectUri: `${PUBLIC_URL}/api/oauth/callback`,
   jwksUri: `${PUBLIC_URL}/.well-known/jwks.json`,
   jwkPrivate: atprotoJwkPrivate,
@@ -102,13 +133,46 @@ export const PROD_OAUTH_CONFIG = {
   scope: OAUTH_SCOPE,
 };
 
+/**
+ * Named export of the Supabase session store.
+ * Shared with the ePDS callback route so both flows write to the same store.
+ * Wrapped with debug logging to trace all SDK-internal and route-level calls.
+ */
+const _sessionStore = createSupabaseSessionStore(supabase, APP_ID);
+export const sessionStore = {
+  async get(did: string) {
+    const result = await _sessionStore.get(did);
+    console.log('[session-store] GET', { did, found: !!result, hasDpopJwk: !!result?.dpopJwk, hasTokenSet: !!result?.tokenSet, tokenType: result?.tokenSet?.token_type, iss: result?.tokenSet?.iss, sub: result?.tokenSet?.sub });
+    return result;
+  },
+  async set(did: string, session: Parameters<typeof _sessionStore.set>[1]) {
+    console.log('[session-store] SET', { did, hasDpopJwk: !!session?.dpopJwk, hasTokenSet: !!session?.tokenSet, tokenType: session?.tokenSet?.token_type, iss: session?.tokenSet?.iss, sub: session?.tokenSet?.sub, hasRefreshToken: !!session?.tokenSet?.refresh_token, hasAccessToken: !!session?.tokenSet?.access_token });
+    return _sessionStore.set(did, session);
+  },
+  async del(did: string) {
+    console.log('[session-store] DEL', { did });
+    return _sessionStore.del(did);
+  },
+};
+
+/**
+ * ePDS-specific ephemeral state store (delete-on-read).
+ * Uses a separate app_id prefix ('bumicerts-epds') to avoid key collisions
+ * with the SDK's own state store ('bumicerts').
+ */
+export const epdsStateStore = createEpdsStateStore(
+  // Cast back to SupabaseClient — same version-mismatch workaround as sessionStore above
+  supabase as unknown as import("@supabase/supabase-js").SupabaseClient,
+  "bumicerts-epds"
+);
+
 export const atprotoSDK = createATProtoSDK({
-  oauth: isDev ? DEV_OAUTH_CONFIG : PROD_OAUTH_CONFIG,
+  oauth: isLoopback() ? DEV_OAUTH_CONFIG : PROD_OAUTH_CONFIG,
   servers: {
     pds: `https://${allowedPDSDomains[0]}`,
   },
   storage: {
-    sessionStore: createSupabaseSessionStore(supabase, APP_ID),
+    sessionStore,
     stateStore: createSupabaseStateStore(supabase, APP_ID),
   },
 });
