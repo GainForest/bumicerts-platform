@@ -4,146 +4,177 @@ type InviteCodeEmailProps = {
 };
 
 export function InviteCodeEmail({ inviteCode, pdsDomain }: InviteCodeEmailProps) {
+  const systemFont =
+    "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
+  const serifFont = "'EB Garamond', Georgia, 'Times New Roman', serif";
+  const monoFont = "'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace";
+
   return (
     <div
       style={{
-        fontFamily:
-          "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+        backgroundColor: "#f5f7f5",
+        fontFamily: systemFont,
         color: "#0a0a0a",
-        backgroundColor: "#ffffff",
-        padding: "0",
         margin: "0",
+        padding: "0",
       }}
     >
+      {/* Google Fonts import for EB Garamond */}
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');`}</style>
+
+      {/* Outer wrapper: full-width sage-tinted background */}
       <div
         style={{
-          maxWidth: "600px",
-          margin: "0 auto",
-          backgroundColor: "#ffffff",
-          border: "1px solid #e5e7eb",
-          borderRadius: "12px",
+          padding: "48px 16px",
         }}
       >
-        {/* Header with Logo */}
+        {/* Inner card: 560px, white, subtle border, generous radius */}
         <div
           style={{
-            padding: "40px 40px 32px",
-            borderBottom: "1px solid #f0f0f0",
+            maxWidth: "560px",
+            margin: "0 auto",
+            backgroundColor: "#ffffff",
+            border: "1px solid #e5e7eb",
+            borderRadius: "16px",
           }}
         >
-          <h1
-            style={{
-              fontSize: "28px",
-              fontWeight: 700,
-              margin: "0 0 12px",
-              color: "#0a0a0a",
-              letterSpacing: "-0.01em",
-              lineHeight: "1.2",
-            }}
-          >
-            Welcome to GainForest
-          </h1>
-          <p
-            style={{
-              margin: "0",
-              fontSize: "16px",
-              color: "#4b5563",
-              lineHeight: "1.5",
-            }}
-          >
-            You&apos;ve been invited to join{" "}
-            <strong style={{ color: "#0a0a0a" }}>{pdsDomain}</strong>
-          </p>
-        </div>
+          {/* ── Header section ── */}
+          <div style={{ padding: "48px 48px 0" }}>
+            {/* Logo mark */}
+            <img
+              src="https://bumicerts.gainforest.app/assets/media/images/logo.png"
+              alt="Bumicerts"
+              width={36}
+              height={36}
+              style={{ display: "block", borderRadius: "10px" }}
+            />
 
-        {/* Main Content */}
-        <div style={{ padding: "40px" }}>
-          <p
-            style={{
-              margin: "0 0 24px",
-              fontSize: "16px",
-              color: "#374151",
-              lineHeight: "1.6",
-            }}
-          >
-            Use this invite code to complete your account setup and start your
-            journey with us.
-          </p>
-
-          {/* Invite Code Box */}
-          <div
-            style={{
-              padding: "20px 28px",
-              borderRadius: "12px",
-              backgroundColor: "#ecfdf5",
-              border: "2px solid #2FCE8A",
-              borderLeft: "6px solid #2FCE8A",
-              marginBottom: "32px",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-            }}
-          >
+            {/* Thin green decorative rule */}
             <div
               style={{
-                fontSize: "13px",
-                fontWeight: 600,
-                color: "#059669",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: "8px",
+                width: "32px",
+                height: "1px",
+                backgroundColor: "#2FCE8A",
+                marginTop: "24px",
               }}
-            >
-              Your Invite Code
-            </div>
-            <div
+            />
+
+            {/* Garamond headline */}
+            <h1
               style={{
-                fontSize: "24px",
-                fontWeight: 700,
-                letterSpacing: "0.05em",
+                margin: "20px 0 0",
+                fontSize: "28px",
+                fontWeight: 400,
+                letterSpacing: "-0.02em",
+                lineHeight: "1.25",
                 color: "#0a0a0a",
-                fontFamily: "monospace, 'Courier New', Courier",
-                wordBreak: "break-all",
+                fontFamily: serifFont,
               }}
             >
-              {inviteCode}
-            </div>
+              Your invite code for
+              <br />
+              <span style={{ fontStyle: "italic", color: "#0a0a0a" }}>
+                {pdsDomain}
+              </span>
+            </h1>
+
+            {/* Subtitle */}
+            <p
+              style={{
+                margin: "12px 0 0",
+                fontSize: "15px",
+                color: "#6b7280",
+                lineHeight: "1.6",
+                fontFamily: systemFont,
+              }}
+            >
+              Use this code to complete your account setup.
+            </p>
           </div>
 
-          <p
-            style={{
-              margin: "0 0 8px",
-              fontSize: "14px",
-              color: "#6b7280",
-              lineHeight: "1.5",
-            }}
-          >
-            If you didn&apos;t request this invitation, you can safely ignore this
-            email.
-          </p>
-        </div>
+          {/* ── Code section ── */}
+          <div style={{ padding: "40px 48px 44px" }}>
+            {/* Section label: uppercase, tracked, muted */}
+            <div
+              style={{
+                fontSize: "11px",
+                fontWeight: 500,
+                textTransform: "uppercase",
+                letterSpacing: "0.15em",
+                color: "#9ca3af",
+                marginBottom: "16px",
+                fontFamily: systemFont,
+              }}
+            >
+              Invite Code
+            </div>
 
-        {/* Footer */}
-        <div
-          style={{
-            padding: "24px 40px",
-            borderTop: "1px solid #f0f0f0",
-            backgroundColor: "#fafafa",
-            borderBottomLeftRadius: "12px",
-            borderBottomRightRadius: "12px",
-          }}
-        >
-          <p
-            style={{
-              margin: "0",
-              fontSize: "13px",
-              color: "#9ca3af",
-              lineHeight: "1.5",
-            }}
-          >
-            <strong style={{ color: "#2FCE8A", fontWeight: 600 }}>
-              GainForest
-            </strong>{" "}
-            · Regenerating ecosystems, together
-          </p>
+            {/* Code container: sage-tinted, soft green border */}
+            <div
+              style={{
+                backgroundColor: "#f0f7f4",
+                border: "1px solid rgba(47, 206, 138, 0.3)",
+                borderRadius: "12px",
+                padding: "28px 32px",
+                textAlign: "center",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "40px",
+                  fontWeight: 500,
+                  letterSpacing: "0.25em",
+                  color: "#0a0a0a",
+                  fontFamily: monoFont,
+                }}
+              >
+                {inviteCode}
+              </span>
+            </div>
+
+            {/* Ignore notice */}
+            <p
+              style={{
+                margin: "16px 0 0",
+                fontSize: "13px",
+                color: "#9ca3af",
+                lineHeight: "1.5",
+                fontFamily: systemFont,
+              }}
+            >
+              If you didn&apos;t request this invitation, you can safely ignore this email.
+            </p>
+          </div>
+
+          {/* ── Footer section ── */}
+          <div style={{ padding: "0 48px 44px" }}>
+            <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: "24px" }}>
+              {/* Garamond italic tagline */}
+              <p
+                style={{
+                  margin: "0",
+                  fontFamily: serifFont,
+                  fontStyle: "italic",
+                  fontSize: "14px",
+                  color: "#b0b0b0",
+                  lineHeight: "1.5",
+                }}
+              >
+                Regenerating ecosystems, together
+              </p>
+              {/* Attribution */}
+              <p
+                style={{
+                  margin: "4px 0 0",
+                  fontSize: "12px",
+                  color: "#c0c0c0",
+                  fontFamily: systemFont,
+                }}
+              >
+                Bumicerts by GainForest
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
