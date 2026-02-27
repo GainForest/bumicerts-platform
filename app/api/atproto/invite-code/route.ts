@@ -101,20 +101,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Pair first N codes to N emails; insert each mapping
-    const results: { email: string; inviteCode: string }[] = [];
+    // Pair first N codes to N emails; insert all mappings in parallel
+    let results: { email: string; inviteCode: string }[];
     try {
-      for (let i = 0; i < emails.length; i++) {
-        const email = emails[i];
-        const inviteCode = minted[i];
-
-        await sql`
-          INSERT INTO invites (email, invite_token, pds_domain)
-          VALUES (${email}, ${inviteCode}, ${allowedPDSDomains[0]})
-        `;
-
-        results.push({ email, inviteCode });
-      }
+      results = await Promise.all(
+        emails.map(async (email, i) => {
+          const inviteCode = minted[i];
+          await sql`
+            INSERT INTO invites (email, invite_token, pds_domain)
+            VALUES (${email}, ${inviteCode}, ${allowedPDSDomains[0]})
+          `;
+          return { email, inviteCode };
+        })
+      );
     } catch (dbErr) {
       console.error("Failed to insert invite(s):", dbErr);
       return new Response(

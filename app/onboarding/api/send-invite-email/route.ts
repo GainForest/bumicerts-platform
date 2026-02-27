@@ -76,25 +76,17 @@ export async function POST(req: NextRequest) {
 
     const clientIp = getClientIp(req.headers);
 
-    // Check IP rate limit
-    const ipLimit = await checkRateLimit(
-      `ip:${clientIp}`,
-      'send-invite-email',
-      RATE_LIMITS.sendInviteEmail.byIp
-    );
+    // Check IP and email rate limits in parallel (independent DB queries)
+    const [ipLimit, emailLimit] = await Promise.all([
+      checkRateLimit(`ip:${clientIp}`, 'send-invite-email', RATE_LIMITS.sendInviteEmail.byIp),
+      checkRateLimit(`email:${email}`, 'send-invite-email', RATE_LIMITS.sendInviteEmail.byEmail),
+    ]);
     if (!ipLimit.allowed) {
       return Response.json(
         { error: 'RateLimitExceeded', message: 'Too many requests', retryAfter: ipLimit.resetAt.toISOString() },
         { status: 429, headers: { 'Retry-After': String(Math.ceil((ipLimit.resetAt.getTime() - Date.now()) / 1000)) } }
       );
     }
-
-    // Check email rate limit
-    const emailLimit = await checkRateLimit(
-      `email:${email}`,
-      'send-invite-email',
-      RATE_LIMITS.sendInviteEmail.byEmail
-    );
     if (!emailLimit.allowed) {
       return Response.json(
         { error: 'RateLimitExceeded', message: 'Please wait before requesting another invite code', retryAfter: emailLimit.resetAt.toISOString() },
@@ -105,8 +97,10 @@ export async function POST(req: NextRequest) {
     // Record rate limit attempts immediately after checks pass, before any email
     // sending or invite code logic, to prevent TOCTOU race conditions where two
     // concurrent requests both pass the check before either records an attempt.
-    await recordRateLimitAttempt(`ip:${clientIp}`, 'send-invite-email');
-    await recordRateLimitAttempt(`email:${email}`, 'send-invite-email');
+    await Promise.all([
+      recordRateLimitAttempt(`ip:${clientIp}`, 'send-invite-email'),
+      recordRateLimitAttempt(`email:${email}`, 'send-invite-email'),
+    ]);
 
     const inviteCode = await getOrCreateInviteCode(
       supabase,

@@ -284,26 +284,24 @@ export async function POST(req: NextRequest) {
     const accountData = (await accountResponse.json()) as AccountCreationResponse;
     const { did, accessJwt, refreshJwt } = accountData;
 
-    // Mark invite code as consumed
-    try {
-      await supabase
+    // Mark invite code as consumed and prepare logo upload in parallel (independent operations)
+    const [, logoResult] = await Promise.allSettled([
+      supabase
         .from("invites")
         .update({ used_at: new Date().toISOString(), used_by_did: did })
         .eq("invite_token", inviteCode)
-        .eq("pds_domain", pdsDomain);
-    } catch (error) {
-      // Non-fatal: PDS already consumed the code, this is just bookkeeping
-      console.warn("Failed to mark invite as consumed:", error);
+        .eq("pds_domain", pdsDomain),
+      logoFile && logoFile.size > 0 ? fileToBase64(logoFile) : Promise.resolve(undefined),
+    ]);
+
+    if (logoResult.status === "rejected") {
+      console.warn("Failed to process logo file, continuing without it:", logoResult.reason);
     }
 
-    // Step 4: Prepare logo upload if provided
+    // Step 4: Extract logo upload result
     let logoUpload: { name: string; type: string; dataBase64: string } | undefined;
-    if (logoFile && logoFile.size > 0) {
-      try {
-        logoUpload = await fileToBase64(logoFile);
-      } catch (error) {
-        console.warn("Failed to process logo file, continuing without it:", error);
-      }
+    if (logoResult.status === "fulfilled" && logoResult.value) {
+      logoUpload = logoResult.value;
     }
 
     // Step 5: Initialize organization using SDK's onboard method
