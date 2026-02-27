@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import BiokoNeutralImage from "@/app/(marketplace)/bumicert/create/[draftId]/_assets/bioko-neutral.png";
 import BiokoHoldingLoudspeakerImage from "@/app/(marketplace)/bumicert/create/[draftId]/_assets/bioko-holding-loudspeaker.png";
 import BiokoHoldingEarthImage from "@/app/(marketplace)/bumicert/create/[draftId]/_assets/bioko-holding-earth.png";
@@ -69,6 +69,8 @@ const stepImages = [
   },
 ];
 
+const EMPTY_COVER_IMAGE = new File([], "cover-image.png");
+
 const SecondaryContent = () => {
   const { currentStepIndex: currentStep } = useNewBumicertStore();
   const completionPercentages = useFormStore(
@@ -81,10 +83,6 @@ const SecondaryContent = () => {
   const [isBumicertPreviewOpen, setIsBumicertPreviewOpen] = useState(
     stepImages[currentStep].previewBumicertByDefault
   );
-
-  useEffect(() => {
-    setIsBumicertPreviewOpen(stepImages[currentStep].previewBumicertByDefault);
-  }, [currentStep]);
 
   const { data: organizationInfoResponse, isPlaceholderData: isOlderData } =
     trpcApi.gainforest.organization.info.get.useQuery(
@@ -113,7 +111,7 @@ const SecondaryContent = () => {
           <Button
             size={"icon"}
             variant={"ghost"}
-            onClick={() => setIsBumicertPreviewOpen(!isBumicertPreviewOpen)}
+            onClick={() => setIsBumicertPreviewOpen(prev => !prev)}
           >
             <ChevronDown
               className={cn(
@@ -147,7 +145,7 @@ const SecondaryContent = () => {
                     logoUrl={logoUrl}
                     coverImage={
                       step1FormValues.coverImage ??
-                      new File([], "cover-image.png")
+                      EMPTY_COVER_IMAGE
                     }
                     title={step1FormValues.projectName}
                     objectives={step1FormValues.workType}

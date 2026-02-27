@@ -19,6 +19,8 @@ import { trackStepViewed, trackStepCompleted, getStepName } from "@/lib/analytic
 import { useParams } from "next/navigation";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
 
+const EMPTY_COVER_IMAGE = new File([], "cover-image.png");
+
 const StepBody = () => {
   const { viewport, openState } = useNavbarContext();
   const { currentStepIndex: currentStep } = useNewBumicertStore();
@@ -135,7 +137,7 @@ const SecondaryContent = () => {
           <Button
             size={"icon"}
             variant={"ghost"}
-            onClick={() => setIsBumicertPreviewOpen(!isBumicertPreviewOpen)}
+            onClick={() => setIsBumicertPreviewOpen(prev => !prev)}
           >
             <ChevronDown
               className={cn(
@@ -169,7 +171,7 @@ const SecondaryContent = () => {
                     logoUrl={logoUrl}
                     coverImage={
                       step1FormValues.coverImage ??
-                      new File([], "cover-image.png")
+                      EMPTY_COVER_IMAGE
                     }
                     title={step1FormValues.projectName}
                     objectives={step1FormValues.workType}

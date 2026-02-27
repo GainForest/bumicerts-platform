@@ -308,7 +308,7 @@ export function ExploreHeaderSlots({
         {/* Sort dropdown */}
         <div className="relative shrink-0">
           <button
-            onClick={() => setOpenDropdown(openDropdown === "sort" ? null : "sort")}
+            onClick={() => setOpenDropdown(prev => prev === "sort" ? null : "sort")}
             className="flex items-center gap-2 h-10 px-3 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors"
           >
             <ArrowUpDownIcon className="h-4 w-4" />

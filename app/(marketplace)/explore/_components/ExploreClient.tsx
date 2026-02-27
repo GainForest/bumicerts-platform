@@ -15,14 +15,12 @@ import { ExploreHeaderSlots, type Filters } from "./ExploreHeader";
 import { useExploreStore } from "../store";
 import ExploreHydrator from "./ExploreHydrator";
 
+const EMPTY_FILTERS: Filters = { organizations: [], countries: [], objectives: [] };
+
 export function ExploreClient({ initialData }: { initialData: SerializedSuperjson<BumicertData[]> }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("newest");
-  const [filters, setFilters] = useState<Filters>({
-    organizations: [],
-    countries: [],
-    objectives: [],
-  });
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
   // Deserialize server-rendered initial data
   const initialBumicerts = useMemo<BumicertData[]>(() => {
@@ -100,7 +98,7 @@ export function ExploreClient({ initialData }: { initialData: SerializedSuperjso
 
   // Clear all filters
   const clearAllFilters = useCallback(() => {
-    setFilters({ organizations: [], countries: [], objectives: [] });
+    setFilters(EMPTY_FILTERS);
   }, []);
 
   const filtered = useMemo(() => {

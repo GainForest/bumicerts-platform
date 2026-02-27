@@ -122,6 +122,8 @@ const validateFile = (
   return true;
 };
 
+const DEFAULT_SUPPORTED_FILE_TYPES = ["image/*"];
+
 interface FileInputProps {
   placeholder?: string;
   supportedFileTypes?: string[];
@@ -133,7 +135,7 @@ interface FileInputProps {
 
 const FileInput = ({
   placeholder = "Upload or drag and drop your file",
-  supportedFileTypes = ["image/*"],
+  supportedFileTypes = DEFAULT_SUPPORTED_FILE_TYPES,
   onFileChange,
   value,
   maxSizeInMB = 10,
