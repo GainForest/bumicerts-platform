@@ -49,7 +49,7 @@ export const SiteEditorModal = ({ initialData }: SiteEditorModalProps) => {
     initialData?.value?.location?.$type === "org.hypercerts.defs#smallBlob"
       ? getBlobUrl(
           parseAtUri(initialData.uri).did,
-          (initialData.value.location as $Typed<Defs.SmallBlob>).blob,
+          (initialData.value.location as $Typed<Defs.SmallBlob>).blob as any,
           allowedPDSDomains[0]
         )
       : null;

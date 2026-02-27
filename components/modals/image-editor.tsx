@@ -45,7 +45,7 @@ export const ImageEditorModal = ({
   const { popModal, stack, hide } = useModal();
   const initialBlobImageURL =
     isBlobRef(initialImage) && did
-      ? getBlobUrl(did, initialImage, allowedPDSDomains[0])
+      ? getBlobUrl(did, initialImage as any, allowedPDSDomains[0])
       : null;
   const [isInitialBlobImageLoading, setIsInitialBlobImageLoading] = useState(
     Boolean(initialBlobImageURL)

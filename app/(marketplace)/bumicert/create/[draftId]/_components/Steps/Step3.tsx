@@ -332,7 +332,7 @@ const SiteItem = ({
       ? (locationRef as $Typed<Defs.Uri>).uri
       : null;
   const locationBlobURL = locationBlob
-    ? getBlobUrl(parseAtUri(site.uri).did, locationBlob, allowedPDSDomains[0])
+    ? getBlobUrl(parseAtUri(site.uri).did, locationBlob as any, allowedPDSDomains[0])
     : null;
   const urlToFetch = locationBlobURL ?? locationURI ?? null;
 

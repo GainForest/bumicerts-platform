@@ -68,5 +68,9 @@
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
-  ]
+  ],
+  "overrides": {
+    "@atproto/api": "0.18.10",
+    "@atproto/lexicon": "0.6.0"
+  }
 }

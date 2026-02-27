@@ -15,6 +15,6 @@ export const getShapefilePreviewUrl = (
     return `${suffix}${encodeURIComponent(shapefile)}`;
   }
   return `${suffix}${encodeURIComponent(
-    getBlobUrl(shapefile.did, shapefile.blob, allowedPDSDomains[0])
+    getBlobUrl(shapefile.did, shapefile.blob as any, allowedPDSDomains[0])
   )}`;
 };

@@ -51,9 +51,15 @@ export const resolvePublicUrl = (): string => {
   if (isDev) {
     return `http://127.0.0.1:${process.env.PORT ?? 3000}`;
   }
-  throw new Error(
-    "Set NEXT_PUBLIC_BASE_URL, or deploy to Vercel (provides VERCEL_PROJECT_PRODUCTION_URL / VERCEL_BRANCH_URL automatically)"
+  // Build-time fallback — next build evaluates this module at compile time
+  // when no Vercel env vars are available. Return a placeholder that will
+  // never be used at runtime (Vercel injects VERCEL_BRANCH_URL/VERCEL_URL).
+  // Using .invalid TLD (RFC 2606) ensures loud failure if accidentally used.
+  console.warn(
+    "[atproto] No public URL configured — using build-time placeholder. " +
+    "Set NEXT_PUBLIC_BASE_URL or deploy to Vercel."
   );
+  return "https://placeholder.invalid";
 };
 
 const PUBLIC_URL = resolvePublicUrl();

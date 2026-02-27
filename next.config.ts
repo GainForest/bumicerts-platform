@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
-  skipMiddlewareUrlNormalize: true,
+  skipProxyUrlNormalize: true,
   images: {
     remotePatterns: [
       {

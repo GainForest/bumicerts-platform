@@ -36,6 +36,7 @@ export const metadata: Metadata = {
   title: "Bumicerts — Fund Regenerative Impact",
   description:
     "Bumicerts connects funders with nature stewards doing on-ground regenerative work. Fund verified environmental impact directly.",
+  robots: "noindex, nofollow",
   openGraph: {
     title: "Bumicerts — Fund Regenerative Impact",
     description:
