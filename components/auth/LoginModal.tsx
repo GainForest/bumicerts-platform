@@ -83,11 +83,11 @@ function EmailForm() {
           disabled={isRedirecting}
         />
         <p className="text-xs text-muted-foreground">
-          Enter your email for a verification code, or continue without
+          Enter your email for a verification code
         </p>
       </div>
 
-      <Button type="submit" disabled={isRedirecting} className="w-full">
+      <Button type="submit" disabled={isRedirecting || !email.trim()} className="w-full">
         {isRedirecting ? (
           <>
             <LoaderIcon className="h-4 w-4 animate-spin" />
@@ -224,7 +224,7 @@ function HandleForm() {
 // ─── Login Modal ──────────────────────────────────────────────────────────────
 
 export function LoginModal({ onClose }: LoginModalProps) {
-  const [activeTab, setActiveTab] = useState<"handle" | "email">("handle");
+  const [activeTab, setActiveTab] = useState<"handle" | "email">("email");
   const hasEpds = !!process.env.NEXT_PUBLIC_EPDS_URL;
 
   const domain = allowedPDSDomains[0];
@@ -268,16 +268,17 @@ export function LoginModal({ onClose }: LoginModalProps) {
         </p>
       </div>
 
-      {/* Pill Toggle (only when ePDS is available) */}
-      {hasEpds && (
+      {/* TODO: Re-enable handle login toggle when ready */}
+      {/* {hasEpds && (
         <div className="mb-6">
           <PillToggle active={activeTab} onChange={setActiveTab} />
         </div>
-      )}
+      )} */}
 
       {/* Form */}
       <AnimatePresence mode="wait">
-        {hasEpds && activeTab === "email" ? (
+        {/* TODO: Re-enable handle login when ready */}
+        {/* {hasEpds && activeTab === "email" ? ( */}
           <motion.div
             key="email"
             initial={{ opacity: 0, x: 8 }}
@@ -287,7 +288,7 @@ export function LoginModal({ onClose }: LoginModalProps) {
           >
             <EmailForm />
           </motion.div>
-        ) : (
+        {/* ) : (
           <motion.div
             key="handle"
             initial={{ opacity: 0, x: -8 }}
@@ -297,7 +298,7 @@ export function LoginModal({ onClose }: LoginModalProps) {
           >
             <HandleForm />
           </motion.div>
-        )}
+        )} */}
       </AnimatePresence>
 
       <div className="flex items-center gap-3 my-4">
