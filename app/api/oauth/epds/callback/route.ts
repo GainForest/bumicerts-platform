@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       console.error(
         "[epds/callback] Missing required query parameters: code and/or state"
       );
-      redirect("/?error=auth_failed");
+      return;
     }
 
     // 2. Retrieve ephemeral state from Supabase (delete-on-read)
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         "[epds/callback] No OAuth state found in Supabase for state:",
         state
       );
-      redirect("/?error=auth_failed");
+      return;
     }
 
     // 3. Destructure code verifier and DPoP private JWK
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
         tokenResponse.status,
         errorBody
       );
-      redirect("/?error=auth_failed");
+      return;
     }
 
     // 8. Parse token response
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
         "[epds/callback] Expected DPoP token, got:",
         tokenData.token_type
       );
-      redirect("/?error=auth_failed");
+      return;
     }
 
     // 9b. Validate sub is a DID
@@ -130,12 +130,12 @@ export async function GET(request: NextRequest) {
         "[epds/callback] Invalid sub in token response (must be a DID):",
         tokenData.sub
       );
-      redirect("/?error=auth_failed");
+      return;
     }
 
     // 10. Construct NodeSavedSession compatible with the gainforest-sdk's session store
     // The issuer is the PDS origin (token endpoint without the /oauth/token path)
-    const issuer = tokenEndpoint.replace("/oauth/token", "");
+    const issuer = new URL(tokenEndpoint).origin;
 
     // NodeSavedSession = Omit<Session, 'dpopKey'> & { dpopJwk: Jwk }
     // dpopJwk must be the private JWK (includes 'd' parameter) — SDK uses this for DPoP proofs
@@ -171,15 +171,21 @@ export async function GET(request: NextRequest) {
     // We can't use atprotoSDK.restoreSession() here because the manually-constructed
     // NodeSavedSession doesn't have the internal dpopFetch method the SDK expects.
     let resolvedHandle = tokenData.sub;
+    const epdsUrl = process.env.NEXT_PUBLIC_EPDS_URL;
+    if (!epdsUrl) {
+      console.warn("[epds/callback] NEXT_PUBLIC_EPDS_URL not set, skipping handle resolution");
+      // skip handle resolution, resolvedHandle stays as DID
+    }
     try {
-      const epdsUrl = process.env.NEXT_PUBLIC_EPDS_URL!;
-      const describeRes = await fetch(
-        `${epdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(tokenData.sub)}`,
-        { signal: AbortSignal.timeout(10_000) }
-      );
-      if (describeRes.ok) {
-        const repo = await describeRes.json() as { handle: string };
-        resolvedHandle = repo.handle;
+      if (epdsUrl) {
+        const describeRes = await fetch(
+          `${epdsUrl}/xrpc/com.atproto.repo.describeRepo?repo=${encodeURIComponent(tokenData.sub)}`,
+          { signal: AbortSignal.timeout(10_000) }
+        );
+        if (describeRes.ok) {
+          const repo = await describeRes.json() as { handle: string };
+          resolvedHandle = repo.handle;
+        }
       }
     } catch (handleError) {
       console.warn(
@@ -198,19 +204,11 @@ export async function GET(request: NextRequest) {
 
     success = true;
   } catch (error) {
-    // Next.js redirect() throws a control-flow exception — re-throw it
-    // so it propagates correctly. Other errors are logged.
-    if (
-      error instanceof Error &&
-      error.message === "NEXT_REDIRECT"
-    ) {
-      throw error;
-    }
     console.error("[epds/callback] Unexpected error:", error);
   }
 
-  // Redirects are outside try/catch because Next.js redirect() throws
-  // a control-flow exception that must not be caught
+  // All redirects are outside try/catch — Next.js redirect() throws a
+  // control-flow exception that must not be caught by the error handler.
   if (success) {
     redirect("/");
   } else {

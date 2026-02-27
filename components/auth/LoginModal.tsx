@@ -60,6 +60,8 @@ function EmailForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsRedirecting(true);
+    // Safety net: if navigation doesn't happen within 10s, reset
+    setTimeout(() => setIsRedirecting(false), 10_000);
     const url = email
       ? `/api/oauth/epds/login?email=${encodeURIComponent(email)}`
       : "/api/oauth/epds/login";

@@ -9,7 +9,6 @@ import type {
   AppGainforestOrganizationInfo,
   OrgHypercertsClaimActivity,
 } from "gainforest-sdk/lex-api";
-import type { GetRecordResponse } from "gainforest-sdk/types";
 import { BumicertHero } from "./_components/Hero";
 import { BumicertBody } from "./_components/Body";
 import { BumicertDetailHeader } from "./_components/BumicertDetailHeader";
@@ -85,7 +84,8 @@ export async function generateMetadata({
 
   const [did, rkey] = parsed;
   const caller = gainforestSdk.getServerCaller();
-  const [response, error] = await tryCatch(
+  type ActivityGetResponse = Awaited<ReturnType<typeof caller.hypercerts.claim.activity.get>>;
+  const [response, error] = await tryCatch<ActivityGetResponse>(
     caller.hypercerts.claim.activity.get({
       did,
       rkey,
@@ -95,7 +95,7 @@ export async function generateMetadata({
 
   if (error || !response) return { title: "Bumicert Not Found" };
 
-  const activity = (response as GetRecordResponse<OrgHypercertsClaimActivity.Record>).value;
+  const activity = response.value;
   return {
     title: `${activity.title} — Bumicerts`,
     description: activity.shortDescription ?? activity.description?.slice(0, 160) ?? "",
@@ -121,7 +121,9 @@ export default async function BumicertDetailPage({
   const [did, rkey] = parsed;
   const caller = gainforestSdk.getServerCaller();
 
-  const [results, fetchError] = await tryCatch(
+  type OrgInfoResponse = Awaited<ReturnType<typeof caller.gainforest.organization.info.get>>;
+  type ActivityGetResponse = Awaited<ReturnType<typeof caller.hypercerts.claim.activity.get>>;
+  const [results, fetchError] = await tryCatch<[OrgInfoResponse, ActivityGetResponse]>(
     Promise.all([
       caller.gainforest.organization.info.get({ did, pdsDomain }),
       caller.hypercerts.claim.activity.get({ did, rkey, pdsDomain }),
@@ -139,10 +141,7 @@ export default async function BumicertDetailPage({
     throw new Error("Failed to load this bumicert. Please try again.");
   }
 
-  const [orgInfoResponse, activityResponse] = results as [
-    GetRecordResponse<AppGainforestOrganizationInfo.Record>,
-    GetRecordResponse<OrgHypercertsClaimActivity.Record>,
-  ];
+  const [orgInfoResponse, activityResponse] = results;
   const bumicert = buildBumicertData(
     did,
     rkey,

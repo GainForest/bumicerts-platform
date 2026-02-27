@@ -113,7 +113,7 @@ export function InviteCodeEmail({ inviteCode, pdsDomain }: InviteCodeEmailProps)
             <div
               style={{
                 backgroundColor: "#f0f7f4",
-                border: "1px solid rgba(47, 206, 138, 0.3)",
+                border: "1px solid #c5edd9",
                 borderRadius: "12px",
                 padding: "28px 32px",
                 textAlign: "center",

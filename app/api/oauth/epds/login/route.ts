@@ -11,8 +11,7 @@ import {
   getEpdsClientId,
   getEpdsRedirectUri,
 } from "@/lib/epds/config";
-import { epdsStateStore, resolvePublicUrl } from "@/lib/atproto";
-import { OAUTH_SCOPE } from "@/lib/atproto";
+import { epdsStateStore, resolvePublicUrl, OAUTH_SCOPE } from "@/lib/atproto";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {

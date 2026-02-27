@@ -1,6 +1,6 @@
 import "server-only";
 
-import { DEV_OAUTH_CONFIG, resolvePublicUrl } from "@/lib/atproto";
+import { DEV_OAUTH_CONFIG, resolvePublicUrl, isLoopback } from "@/lib/atproto";
 
 /**
  * Returns the ePDS OAuth endpoints derived from NEXT_PUBLIC_EPDS_URL.
@@ -56,8 +56,7 @@ export function getEpdsEndpoints(): {
  */
 export function getEpdsClientId(): string {
   const publicUrl = resolvePublicUrl();
-  const isLoopback = publicUrl.includes('127.0.0.1') || publicUrl.includes('localhost');
-  if (isLoopback) {
+  if (isLoopback()) {
     return DEV_OAUTH_CONFIG.clientId;
   }
   return `${publicUrl}/client-metadata.json`;

@@ -96,12 +96,12 @@ export async function checkSession(): Promise<
   try {
     const oauthSession = await atprotoSDK.restoreSession(session.did);
     if (!oauthSession) {
-      console.warn("COULD NOT RESTORE SESSION")
+      console.warn("[oauth] Could not restore session");
       await clearAppSession();
       return { authenticated: false };
     }
   } catch (e) {
-    console.error("COULD NOT RESTORE SESSION", e)
+    console.error("[oauth] Could not restore session:", e);
     // Session is dead — clear the stale cookie so the UI stays in sync
     await clearAppSession();
     return { authenticated: false };
