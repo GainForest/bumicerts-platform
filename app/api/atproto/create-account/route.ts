@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
+import { headers } from "next/headers";
 import postgres from "postgres";
 import { allowedPDSDomains } from "@/lib/config/gainforest-sdk";
 import { env } from "process";
+import { checkRateLimit, recordRateLimitAttempt } from "@/lib/rate-limit";
 
 if (!env.POSTGRES_URL_NON_POOLING_ATPROTO_AUTH_MAPPING) {
   throw new Error(
@@ -13,6 +15,29 @@ const sql = postgres(env.POSTGRES_URL_NON_POOLING_ATPROTO_AUTH_MAPPING, {
 });
 
 export async function POST(req: NextRequest) {
+  const clientIp =
+    (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown";
+  const { allowed, resetAt } = await checkRateLimit(
+    `ip:${clientIp}`,
+    "create-account",
+    { maxAttempts: 5, windowMs: 60 * 60 * 1000 }
+  );
+  if (!allowed) {
+    const retryAfterSeconds = Math.ceil((resetAt.getTime() - Date.now()) / 1000);
+    return new Response(
+      JSON.stringify({ error: "Too many requests" }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(retryAfterSeconds),
+        },
+      }
+    );
+  }
+  await recordRateLimitAttempt(`ip:${clientIp}`, "create-account");
+
   try {
     const body = (await req.json()) as {
       email: string;

@@ -143,6 +143,11 @@ export type ProfileData = {
  * ```
  */
 export async function getProfile(did: string): Promise<ProfileData | null> {
+  const appSession = await getAppSession();
+  if (!appSession.isLoggedIn || appSession.did !== did) {
+    return null;
+  }
+
   try {
     // Re-use the already-validated session from checkSession.
     // restoreSession here is a lightweight cache hit since checkSession
