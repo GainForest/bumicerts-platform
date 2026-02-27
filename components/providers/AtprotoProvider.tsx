@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useAtprotoStore } from "@/components/stores/atproto";
-import { checkSession, getProfile } from "@/components/actions/oauth";
+import { checkSessionAndGetProfile } from "@/components/actions/oauth";
 
 /**
  * Provider component that initializes ATProto session state.
@@ -33,13 +33,12 @@ export function AtprotoProvider({ children }: { children: React.ReactNode }) {
 
     const initSession = async () => {
       try {
-        const result = await checkSession();
-        if (result.authenticated) {
-          // Fetch profile to get handle, displayName, avatar.
-          // getProfile returns null when the OAuth session is dead (e.g. deleted
-          // by another process). In that case we treat the user as logged out so
-          // the UI stays in sync with the actual session state.
-          const profile = await getProfile(result.did);
+        // Single server action that restores the session once and returns
+        // both session status and profile data, eliminating the sequential
+        // checkSession() + getProfile() waterfall.
+        const result = await checkSessionAndGetProfile();
+        if (result.isLoggedIn && result.did) {
+          const profile = result.profile;
           if (!profile) {
             setAuth(null);
             return;

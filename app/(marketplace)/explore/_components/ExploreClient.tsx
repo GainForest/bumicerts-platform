@@ -6,20 +6,21 @@ import { CompassIcon } from "lucide-react";
 import { deserialize, type SerializedSuperjson } from "gainforest-sdk/utilities/transform";
 import { getBlobUrl, parseAtUri } from "gainforest-sdk/utilities/atproto";
 import { allowedPDSDomains } from "@/lib/config/gainforest-sdk";
+
+type SupportedImageData = Parameters<typeof getBlobUrl>[1];
+type ImageParam = SupportedImageData | { $type?: string } | null | undefined;
 import type { BumicertData } from "@/lib/types";
 import { BumicertGrid } from "./BumicertGrid";
 import { ExploreHeaderSlots, type Filters } from "./ExploreHeader";
 import { useExploreStore } from "../store";
 import ExploreHydrator from "./ExploreHydrator";
 
+const EMPTY_FILTERS: Filters = { organizations: [], countries: [], objectives: [] };
+
 export function ExploreClient({ initialData }: { initialData: SerializedSuperjson<BumicertData[]> }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("newest");
-  const [filters, setFilters] = useState<Filters>({
-    organizations: [],
-    countries: [],
-    objectives: [],
-  });
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
   // Deserialize server-rendered initial data
   const initialBumicerts = useMemo<BumicertData[]>(() => {
@@ -32,12 +33,11 @@ export function ExploreClient({ initialData }: { initialData: SerializedSuperjso
 
   const pdsDomain = allowedPDSDomains[0];
 
-  function resolveActivityImageUrl(did: string, image: unknown): string | null {
-    const img = image as { $type?: string } | null | undefined;
-    if (!img?.$type) return null;
+  function resolveActivityImageUrl(did: string, image: ImageParam): string | null {
+    if (!image || typeof image === "string") return null;
+    if (typeof image !== "object" || !("$type" in image) || !image.$type) return null;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return getBlobUrl(did, img as any, pdsDomain);
+      return getBlobUrl(did, image as SupportedImageData, pdsDomain);
     } catch {
       return null;
     }
@@ -98,7 +98,7 @@ export function ExploreClient({ initialData }: { initialData: SerializedSuperjso
 
   // Clear all filters
   const clearAllFilters = useCallback(() => {
-    setFilters({ organizations: [], countries: [], objectives: [] });
+    setFilters(EMPTY_FILTERS);
   }, []);
 
   const filtered = useMemo(() => {

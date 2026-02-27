@@ -7,8 +7,13 @@ import { LogOutIcon, BuildingIcon, ChevronDownIcon, UserIcon } from "lucide-reac
 import { useAtprotoStore } from "@/components/stores/atproto";
 import { logout } from "@/components/actions/oauth";
 import { useModal } from "@/components/ui/modal/context";
-import { AuthModal } from "./AuthModal";
+import dynamic from "next/dynamic";
 import Link from "next/link";
+
+const AuthModal = dynamic(
+  () => import("./AuthModal").then((m) => ({ default: m.AuthModal })),
+  { ssr: false }
+);
 
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
 

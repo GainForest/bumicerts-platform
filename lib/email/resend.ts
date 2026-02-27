@@ -10,7 +10,7 @@ export const resend = new Resend(resendApiKey);
 
 export const getInviteEmailConfig = () => {
   const from = "noreply@gainforest.id";
-  const subject = "Welcome to GainForest - Your Invite Code";
+  const subject = "Your Bumicerts Invite Code";
 
   return { from, subject };
 };

@@ -14,8 +14,16 @@ import { allowedPDSDomains } from "@/lib/config/gainforest-sdk";
 import { motion } from "framer-motion";
 import { links } from "@/lib/links";
 import { useModal } from "@/components/ui/modal/context";
-import { AuthModal } from "@/components/auth/AuthModal";
+import dynamic from "next/dynamic";
 import Link from "next/link";
+
+const AuthModal = dynamic(
+  () =>
+    import("@/components/auth/AuthModal").then((m) => ({
+      default: m.AuthModal,
+    })),
+  { ssr: false }
+);
 
 type CompletionState = "idle" | "creating" | "success" | "error";
 

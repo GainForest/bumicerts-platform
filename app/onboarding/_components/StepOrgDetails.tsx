@@ -26,19 +26,27 @@ import { countries } from "@/lib/countries";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useModal } from "@/components/ui/modal/context";
-import CountrySelectorModal, {
-  CountrySelectorModalId,
-} from "@/components/modals/country-selector";
-import {
-  ImageEditorModal,
-  ImageEditorModalId,
-} from "@/components/modals/image-editor";
+import { CountrySelectorModalId } from "@/components/modals/country-selector";
+import { ImageEditorModalId } from "@/components/modals/image-editor";
+import dynamic from "next/dynamic";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
+const CountrySelectorModal = dynamic(
+  () => import("@/components/modals/country-selector"),
+  { ssr: false }
+);
+const ImageEditorModal = dynamic(
+  () =>
+    import("@/components/modals/image-editor").then((m) => ({
+      default: m.ImageEditorModal,
+    })),
+  { ssr: false }
+);
 import { format, parseISO } from "date-fns";
 import { links } from "@/lib/links";
 import Image from "next/image";
@@ -96,10 +104,8 @@ export function StepOrgDetails() {
     }
   };
 
-  // Clear any errors from other steps on mount, and validate website if present
+  // Validate website on mount if it's already set
   useEffect(() => {
-    setError(null);
-    // Validate website on mount if it's already set
     if (data.website && !validateUrl(data.website)) {
       setWebsiteError("Please enter a valid URL (e.g., https://example.com)");
     }

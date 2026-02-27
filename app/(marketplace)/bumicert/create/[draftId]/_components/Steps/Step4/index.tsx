@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React from "react";
 import dynamic from "next/dynamic";
 import ReviewStepCard from "./ReviewStepCard";
 import { STEPS as steps } from "../../../_data/steps";
@@ -39,9 +39,6 @@ const Step4 = () => {
   const completionPercentages = useFormStore(
     (state) => state.formCompletionPercentages
   );
-  const updateErrorsAndCompletion = useFormStore(
-    (state) => state.updateErrorsAndCompletion
-  );
   const step1Progress = completionPercentages[0];
   const step2Progress = completionPercentages[1];
   const step3Progress = completionPercentages[2];
@@ -55,10 +52,6 @@ const Step4 = () => {
   const step1Errors = formErrors[0];
   const step2Errors = formErrors[1];
   const step3Errors = formErrors[2];
-
-  useEffect(() => {
-    updateErrorsAndCompletion();
-  }, []);
 
   return (
     <div>

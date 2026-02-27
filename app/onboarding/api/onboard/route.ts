@@ -26,7 +26,7 @@
  *   400: Validation error
  *   500: Server error
  */
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { z } from "zod";
 import {
   allowedPDSDomains,
@@ -284,19 +284,20 @@ export async function POST(req: NextRequest) {
     const accountData = (await accountResponse.json()) as AccountCreationResponse;
     const { did, accessJwt, refreshJwt } = accountData;
 
-    // Mark invite code as consumed
-    try {
-      await supabase
-        .from("invites")
-        .update({ used_at: new Date().toISOString(), used_by_did: did })
-        .eq("invite_token", inviteCode)
-        .eq("pds_domain", pdsDomain);
-    } catch (error) {
-      // Non-fatal: PDS already consumed the code, this is just bookkeeping
-      console.warn("Failed to mark invite as consumed:", error);
-    }
+    // Mark invite code as consumed after response is sent (non-blocking bookkeeping)
+    after(async () => {
+      try {
+        await supabase
+          .from("invites")
+          .update({ used_at: new Date().toISOString(), used_by_did: did })
+          .eq("invite_token", inviteCode)
+          .eq("pds_domain", pdsDomain);
+      } catch (error) {
+        console.warn("Failed to mark invite as consumed:", error);
+      }
+    });
 
-    // Step 4: Prepare logo upload if provided
+    // Step 4: Prepare logo upload (needed for org initialization)
     let logoUpload: { name: string; type: string; dataBase64: string } | undefined;
     if (logoFile && logoFile.size > 0) {
       try {

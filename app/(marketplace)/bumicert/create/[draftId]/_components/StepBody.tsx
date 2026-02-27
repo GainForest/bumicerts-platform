@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNavbarContext } from "@/app/(marketplace)/_components/Navbar/context";
 import { STEPS } from "../_data/steps";
-import { trackStepViewed, trackStepCompleted, getStepName } from "@/lib/analytics";
+import { trackStepViewed, trackStepCompleted, getStepName } from "@/lib/analytics/hotjar";
 import { useParams } from "next/navigation";
 import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes-warning";
+
+const EMPTY_COVER_IMAGE = new File([], "cover-image.png");
 
 const StepBody = () => {
   const { viewport, openState } = useNavbarContext();
@@ -30,12 +32,15 @@ const StepBody = () => {
   // Get dirty state from form store for unsaved changes warning
   const isDirty = useFormStore((state) => state.isDirty);
   const isHydrated = useFormStore((state) => state.isHydrated);
+  const updateErrorsAndCompletion = useFormStore(
+    (state) => state.updateErrorsAndCompletion
+  );
   
   // Show browser warning when user tries to leave with unsaved changes
   // Only enable after form is hydrated (to avoid false positives during initial load)
   useUnsavedChangesWarning(isDirty, isHydrated);
 
-  // Track step views when the step changes
+  // Track step views when the step changes, and run validation for the new step
   useEffect(() => {
     const stepName = getStepName(currentStep);
 
@@ -60,6 +65,9 @@ const StepBody = () => {
       draftId,
     });
 
+    // Run validation when navigating to a new step
+    updateErrorsAndCompletion();
+
     previousStepRef.current = currentStep;
   }, [currentStep, draftId]);
 
@@ -81,7 +89,7 @@ const StepBody = () => {
         <>
           <div className="h-full border-l border-l-border"></div>
           <div className="flex flex-col items-center">
-            <SecondaryContent />
+            <SecondaryContent key={currentStep} />
           </div>
         </>
       )}
@@ -101,10 +109,6 @@ const SecondaryContent = () => {
   const [isBumicertPreviewOpen, setIsBumicertPreviewOpen] = useState(
     STEPS[currentStep].previewBumicertByDefault
   );
-
-  useEffect(() => {
-    setIsBumicertPreviewOpen(STEPS[currentStep].previewBumicertByDefault);
-  }, [currentStep]);
 
   const { data: organizationInfoResponse, isPlaceholderData: isOlderData } =
     trpcApi.gainforest.organization.info.get.useQuery(
@@ -133,7 +137,7 @@ const SecondaryContent = () => {
           <Button
             size={"icon"}
             variant={"ghost"}
-            onClick={() => setIsBumicertPreviewOpen(!isBumicertPreviewOpen)}
+            onClick={() => setIsBumicertPreviewOpen(prev => !prev)}
           >
             <ChevronDown
               className={cn(
@@ -167,7 +171,7 @@ const SecondaryContent = () => {
                     logoUrl={logoUrl}
                     coverImage={
                       step1FormValues.coverImage ??
-                      new File([], "cover-image.png")
+                      EMPTY_COVER_IMAGE
                     }
                     title={step1FormValues.projectName}
                     objectives={step1FormValues.workType}

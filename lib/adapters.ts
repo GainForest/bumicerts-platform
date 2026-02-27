@@ -7,6 +7,9 @@
 
 import { getBlobUrl, parseAtUri } from "gainforest-sdk/utilities/atproto";
 import { getEcocertsFromClaimActivities } from "gainforest-sdk/utilities/hypercerts";
+
+type SupportedImageData = Parameters<typeof getBlobUrl>[1];
+type ImageParam = SupportedImageData | { $type?: string } | null | undefined;
 import type { BumicertData, OrganizationData } from "./types";
 import { allowedPDSDomains } from "@/lib/config/gainforest-sdk";
 import type {
@@ -20,12 +23,11 @@ const pdsDomain = allowedPDSDomains[0];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function resolveSmallImageUrl(did: string, image: unknown): string | null {
-  const smallImage = image as { $type?: string } | null | undefined;
-  if (!smallImage?.$type?.includes("smallImage")) return null;
+function resolveSmallImageUrl(did: string, image: ImageParam): string | null {
+  if (!image || typeof image === "string") return null;
+  if (typeof image !== "object" || !("$type" in image) || !image.$type?.includes("smallImage")) return null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return getBlobUrl(did, smallImage as any, pdsDomain);
+    return getBlobUrl(did, image as SupportedImageData, pdsDomain);
   } catch {
     return null;
   }

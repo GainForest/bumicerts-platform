@@ -65,7 +65,7 @@ const ModalWrapper = ({
         onAnimationComplete={() => {
           if (preventFocusTrap) return;
           setTimeout(() => {
-            setFocusTrapHandleTrigger(focusTrapHandleTrigger + 1);
+            setFocusTrapHandleTrigger(prev => prev + 1);
           }, transitionDurationInMs);
         }}
         key={modal.id + index}

@@ -22,7 +22,7 @@
  */
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { useHeaderContext } from "./context";
+import { useHeaderSlots } from "./context";
 
 interface HeaderContentProps {
   left?: ReactNode;
@@ -31,8 +31,9 @@ interface HeaderContentProps {
 }
 
 export function HeaderContent({ left, right, sub }: HeaderContentProps) {
-  const { setLeftContent, setRightContent, setSubHeaderContent } =
-    useHeaderContext();
+  const setLeftContent = useHeaderSlots((s) => s.setLeftContent);
+  const setRightContent = useHeaderSlots((s) => s.setRightContent);
+  const setSubHeaderContent = useHeaderSlots((s) => s.setSubHeaderContent);
 
   // Track which slots we've "claimed" so unmount only clears what we set.
   const claimedRef = useRef({ left: false, right: false, sub: false });
@@ -50,7 +51,7 @@ export function HeaderContent({ left, right, sub }: HeaderContentProps) {
       setSubHeaderContent(sub);
       claimedRef.current.sub = true;
     }
-  });
+  }, [left, right, sub, setLeftContent, setRightContent, setSubHeaderContent]);
 
   // Cleanup on unmount only
   useEffect(() => {

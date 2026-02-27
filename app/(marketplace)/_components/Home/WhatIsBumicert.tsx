@@ -136,7 +136,7 @@ export function WhatIsBumicert() {
                   item={item}
                   isOpen={openItem === item.id}
                   onToggle={() =>
-                    setOpenItem(openItem === item.id ? "" : item.id)
+                    setOpenItem(prev => prev === item.id ? "" : item.id)
                   }
                   index={index}
                 />

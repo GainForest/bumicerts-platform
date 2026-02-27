@@ -1,12 +1,14 @@
 "use client";
 
-import { useHeaderContext } from "./context";
+import { useHeaderSlots } from "./context";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProgressiveBlur } from "@/components/ui/progressive-blur";
 import { AuthButton } from "@/components/auth/AuthButton";
 
 export function Header() {
-  const { leftContent, rightContent, subHeaderContent } = useHeaderContext();
+  const leftContent = useHeaderSlots((s) => s.leftContent);
+  const rightContent = useHeaderSlots((s) => s.rightContent);
+  const subHeaderContent = useHeaderSlots((s) => s.subHeaderContent);
 
   return (
     <div className="sticky top-0 z-30">

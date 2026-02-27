@@ -45,10 +45,6 @@ const CountrySelectorModal = ({
     return countryData.name.toLowerCase().includes(searchText.toLowerCase());
   });
 
-  useEffect(() => {
-    setCountryCode(initialCountryCode);
-  }, [initialCountryCode]);
-
   // Scroll to selected country when modal opens
   useEffect(() => {
     if (selectedCountryRef.current && searchText === "") {

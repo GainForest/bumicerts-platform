@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRightIcon,
@@ -27,8 +27,9 @@ import { parseAtUri } from "gainforest-sdk/utilities/atproto";
 import { trpcApi } from "@/components/providers/TrpcProvider";
 import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { trackBumicertPublished, getFlowDurationSeconds } from "@/lib/analytics";
-import FeedbackModal from "./FeedbackModal";
+import { trackBumicertPublished, getFlowDurationSeconds } from "@/lib/analytics/hotjar";
+import dynamic from "next/dynamic";
+const FeedbackModal = dynamic(() => import("./FeedbackModal"), { ssr: false });
 
 const ProgressItem = ({
   iconset,
@@ -141,10 +142,6 @@ const Step5 = () => {
 
   const setOverallStatus = useStep5Store((state) => state.setOverallStatus);
 
-  useEffect(() => {
-    setOverallStatus("pending");
-  }, []);
-
   const createBumicertMutationFn =
     trpcClient.hypercerts.claim.activity.create.mutate;
   type CreateBumicertResponse = Awaited<
@@ -213,6 +210,7 @@ const Step5 = () => {
 
         // Show feedback modal after successful publication
         setShowFeedbackModal(true);
+        setOverallStatus("success");
       },
       onError: (error) => {
         console.error(error);
@@ -221,6 +219,7 @@ const Step5 = () => {
       },
       onMutate: () => {
         setIsBumicertCreationMutationInFlight(true);
+        setOverallStatus("pending");
       },
       onSettled: () => {
         setIsBumicertCreationMutationInFlight(false);
@@ -290,12 +289,6 @@ const Step5 = () => {
       );
     }
   };
-
-  useEffect(() => {
-    if (authStatus === "success" && createBumicertStatus === "success") {
-      setOverallStatus("success");
-    }
-  }, [authStatus, createBumicertStatus, setOverallStatus]);
 
   return (
     <div>

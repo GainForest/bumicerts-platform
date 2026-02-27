@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { gainforestSdk } from "@/lib/config/gainforest-sdk.server";
 import { allowedPDSDomains } from "@/lib/config/gainforest-sdk";
@@ -13,14 +14,24 @@ import { BumicertHero } from "./_components/Hero";
 import { BumicertBody } from "./_components/Body";
 import { BumicertDetailHeader } from "./_components/BumicertDetailHeader";
 
+type SupportedImageData = Parameters<typeof getBlobUrl>[1];
+type ImageParam = SupportedImageData | { $type?: string } | null | undefined;
+
 const pdsDomain = allowedPDSDomains[0];
 
-function resolveImageUrl(did: string, image: unknown): string | null {
-  const img = image as { $type?: string } | null | undefined;
-  if (!img?.$type) return null;
+const getActivity = cache(async (did: string, rkey: string) => {
+  const caller = gainforestSdk.getServerCaller();
+  type ActivityGetResponse = Awaited<ReturnType<typeof caller.hypercerts.claim.activity.get>>;
+  return tryCatch<ActivityGetResponse>(
+    caller.hypercerts.claim.activity.get({ did, rkey, pdsDomain })
+  );
+});
+
+function resolveImageUrl(did: string, image: ImageParam): string | null {
+  if (!image || typeof image === "string") return null;
+  if (typeof image !== "object" || !("$type" in image) || !image.$type) return null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return getBlobUrl(did, img as any, pdsDomain);
+    return getBlobUrl(did, image as SupportedImageData, pdsDomain);
   } catch {
     return null;
   }
@@ -81,14 +92,7 @@ export async function generateMetadata({
   if (!parsed) return { title: "Bumicert Not Found" };
 
   const [did, rkey] = parsed;
-  const caller = gainforestSdk.getServerCaller();
-  const [response, error] = await tryCatch(
-    caller.hypercerts.claim.activity.get({
-      did,
-      rkey,
-      pdsDomain,
-    })
-  );
+  const [response, error] = await getActivity(did, rkey);
 
   if (error || !response) return { title: "Bumicert Not Found" };
 
@@ -118,13 +122,13 @@ export default async function BumicertDetailPage({
   const [did, rkey] = parsed;
   const caller = gainforestSdk.getServerCaller();
 
-  const [results, fetchError] = await tryCatch(
-    Promise.all([
-      caller.gainforest.organization.info.get({ did, pdsDomain }),
-      caller.hypercerts.claim.activity.get({ did, rkey, pdsDomain }),
-    ])
-  );
+  type OrgInfoResponse = Awaited<ReturnType<typeof caller.gainforest.organization.info.get>>;
+  const [[activityResponse, activityError], [orgInfoResponse, orgInfoError]] = await Promise.all([
+    getActivity(did, rkey),
+    tryCatch<OrgInfoResponse>(caller.gainforest.organization.info.get({ did, pdsDomain })),
+  ]);
 
+  const fetchError = activityError ?? orgInfoError;
   if (fetchError) {
     if (
       fetchError instanceof TRPCError &&
@@ -136,12 +140,11 @@ export default async function BumicertDetailPage({
     throw new Error("Failed to load this bumicert. Please try again.");
   }
 
-  const [orgInfoResponse, activityResponse] = results;
   const bumicert = buildBumicertData(
     did,
     rkey,
-    activityResponse.value,
-    orgInfoResponse.value
+    activityResponse!.value,
+    orgInfoResponse!.value
   );
 
   return (

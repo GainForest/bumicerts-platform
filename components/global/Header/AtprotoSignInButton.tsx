@@ -3,8 +3,16 @@ import { Button } from "@/components/ui/button";
 import { useModal } from "@/components/ui/modal/context";
 import { Loader2, LogIn } from "lucide-react";
 import React from "react";
-import { AuthModal } from "@/components/auth/AuthModal";
+import dynamic from "next/dynamic";
 import { useAtprotoStore } from "@/components/stores/atproto";
+
+const AuthModal = dynamic(
+  () =>
+    import("@/components/auth/AuthModal").then((m) => ({
+      default: m.AuthModal,
+    })),
+  { ssr: false }
+);
 
 const AtprotoSignInButton = () => {
   const { pushModal, show } = useModal();

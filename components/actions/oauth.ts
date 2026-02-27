@@ -6,7 +6,6 @@ import {
   clearAppSession,
   AppSessionData,
 } from "gainforest-sdk/oauth";
-import { getBlobUrl } from "gainforest-sdk/utilities/atproto";
 import { allowedPDSDomains } from "@/lib/config/gainforest-sdk";
 
 /**
@@ -97,10 +96,12 @@ export async function checkSession(): Promise<
   try {
     const oauthSession = await atprotoSDK.restoreSession(session.did);
     if (!oauthSession) {
+      console.warn("[oauth] Could not restore session");
       await clearAppSession();
       return { authenticated: false };
     }
-  } catch {
+  } catch (e) {
+    console.error("[oauth] Could not restore session:", e);
     // Session is dead — clear the stale cookie so the UI stays in sync
     await clearAppSession();
     return { authenticated: false };
@@ -124,6 +125,13 @@ export type ProfileData = {
 };
 
 /**
+ * Typed error returned by getProfile() when the caller is not authorized
+ * to fetch the requested DID's profile. Distinct from null ("not found" /
+ * session error) so callers can surface the right message.
+ */
+export type ProfileAuthError = { error: "unauthorized" };
+
+/**
  * Fetches the user's ATProto profile using the hypercerts SDK.
  *
  * This server action restores the OAuth session and uses the repository
@@ -131,21 +139,31 @@ export type ProfileData = {
  * and avatar.
  *
  * @param did - The user's DID
- * @returns Profile data or null if profile doesn't exist or session is invalid
+ * @returns Profile data, null if the profile doesn't exist or the session is
+ *   invalid, or a {@link ProfileAuthError} if the caller's session DID does
+ *   not match the requested DID (unauthorized).
  *
  * @example
  * ```tsx
- * const profile = await getProfile("did:plc:abc123");
- * if (profile) {
- *   console.log(`Hello, ${profile.displayName ?? profile.handle}!`);
+ * const result = await getProfile("did:plc:abc123");
+ * if (result && "error" in result) {
+ *   // Unauthorized — session DID does not match requested DID
+ * } else if (result) {
+ *   console.log(`Hello, ${result.displayName ?? result.handle}!`);
  * }
  * ```
  */
-export async function getProfile(did: string): Promise<ProfileData | null> {
+export async function getProfile(
+  did: string
+): Promise<ProfileData | ProfileAuthError | null> {
+  const appSession = await getAppSession();
+  if (!appSession.isLoggedIn || appSession.did !== did) {
+    return { error: "unauthorized" };
+  }
+
   try {
-    // Re-use the already-validated session from checkSession.
-    // restoreSession here is a lightweight cache hit since checkSession
-    // already verified the session is alive moments ago.
+    // Restore the OAuth session for this DID. getProfile() performs its own
+    // session check above and does not assume checkSession() was called first.
     const session = await atprotoSDK.restoreSession(did);
     if (!session) {
       console.error("Could not restore session for profile fetch");
@@ -153,31 +171,98 @@ export async function getProfile(did: string): Promise<ProfileData | null> {
     }
 
     // Get repository and fetch profile
-    const repo = atprotoSDK.repository(session);
-    const profile = await repo.profile.get();
+    // repository() is now async and returns Promise<Repository>
+    const repo = await atprotoSDK.repository(session);
 
-    // Handle avatar - could be URL string or blob reference object
-    let avatarUrl: string | undefined = undefined;
-    if (profile.avatar) {
-      if (typeof profile.avatar === "string") {
-        // Already a URL
-        avatarUrl = profile.avatar;
-      } else if (typeof profile.avatar === "object") {
-        // It's a blob reference, convert to URL
-        avatarUrl = getBlobUrl(did, profile.avatar, allowedPDSDomains[0]);
-      }
-    }
+    // Fetch both profiles in parallel — certified is often null so no need to waterfall
+    const [certifiedProfile, bskyProfile] = await Promise.all([
+      repo.profile.getCertifiedProfile().catch(() => null),
+      repo.profile.getBskyProfile().catch(() => null),
+    ]);
+    const profile = certifiedProfile ?? bskyProfile;
+
+    // Avatar is already a string URL in both CertifiedProfile and BskyProfile
+    const avatarUrl: string | undefined = profile?.avatar ?? undefined;
 
     return {
-      handle: profile.handle,
-      displayName: profile.displayName,
-      description: profile.description,
+      handle: profile?.handle ?? did,
+      displayName: profile?.displayName,
+      description: profile?.description,
       avatar: avatarUrl,
     };
   } catch (error) {
     console.error("Error fetching profile:", error);
-    // Clear the stale session so the UI reflects the true logged-out state
-    await clearAppSession();
+    // Don't clear the session here — restoreSession may fail for ePDS sessions
+    // due to SDK version mismatch, but the session is still valid in Supabase.
+    // The user stays logged in, just without profile data.
     return null;
+  }
+}
+
+/**
+ * Checks the current session and fetches the user's profile in a single
+ * server action, restoring the OAuth session only once.
+ *
+ * This replaces the pattern of calling `checkSession()` followed by
+ * `getProfile()`, which would restore the session twice.
+ *
+ * @returns Combined session + profile data
+ *
+ * @example
+ * ```tsx
+ * const result = await checkSessionAndGetProfile();
+ * if (result.isLoggedIn) {
+ *   console.log(`Logged in as ${result.did}, profile:`, result.profile);
+ * }
+ * ```
+ */
+export async function checkSessionAndGetProfile(): Promise<{
+  isLoggedIn: boolean;
+  did?: string;
+  handle?: string;
+  profile?: ProfileData;
+}> {
+  const session = await getAppSession();
+  if (!session.isLoggedIn || !session.did) {
+    return { isLoggedIn: false };
+  }
+
+  try {
+    const oauthSession = await atprotoSDK.restoreSession(session.did);
+    if (!oauthSession) {
+      console.warn("[oauth] Could not restore session");
+      await clearAppSession();
+      return { isLoggedIn: false };
+    }
+
+    const repo = await atprotoSDK.repository(oauthSession);
+
+    // Fetch both profiles in parallel — certified is often null so no need to waterfall
+    const [certifiedProfile, bskyProfile] = await Promise.all([
+      repo.profile.getCertifiedProfile().catch(() => null),
+      repo.profile.getBskyProfile().catch(() => null),
+    ]);
+    const rawProfile = certifiedProfile ?? bskyProfile;
+
+    const profile: ProfileData | undefined = rawProfile
+      ? {
+          handle: rawProfile.handle ?? session.did,
+          displayName: rawProfile.displayName,
+          description: rawProfile.description,
+          avatar: rawProfile.avatar ?? undefined,
+        }
+      : undefined;
+
+    return {
+      isLoggedIn: true,
+      did: session.did,
+      handle: session.handle,
+      profile,
+    };
+  } catch (e) {
+    console.error("[oauth] Could not restore session:", e);
+    // Session is dead — clear the stale cookie so the UI stays in sync
+    await clearAppSession();
+    return { isLoggedIn: false };
   }
 }
