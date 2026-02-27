@@ -4,6 +4,7 @@ import { OrgHypercertsDefs } from "gainforest-sdk/lex-api";
 import { getBlobUrl } from "gainforest-sdk/utilities/atproto";
 import { BlobRef, BlobRefGenerator } from "gainforest-sdk/zod";
 import React from "react";
+import { debug } from "@/lib/logger";
 
 type SmallImage = OrgHypercertsDefs.SmallImage;
 type LargeImage = OrgHypercertsDefs.LargeImage;
@@ -41,7 +42,7 @@ const useBlob = ({
       if (!dataSource) throw new Error("blob and did are required.");
       const response = await fetch(dataSource);
       const file = await getFileFromResponse(response);
-      console.log(file);
+      debug.log(file);
       return file;
     },
     enabled: !!dataSource,

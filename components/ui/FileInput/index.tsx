@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import useDragAndDrop from "./useDragAndDrop";
 import QuickTooltip from "@/components/ui/quick-tooltip";
+import { debug } from "@/lib/logger";
 
 // Helper function to check if file is an image
 const isImageFile = (file: File): boolean => {
@@ -80,7 +81,7 @@ const validateFile = (
   maxSizeInMB: number,
   supportedFileTypes: string[]
 ): true => {
-  console.log(file);
+  debug.log(file);
 
   if (file.size > maxSizeInMB * 1024 * 1024) {
     throw new Error(`File size exceeds ${maxSizeInMB}MB.`);

@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useState } from "react";
+import { debug } from "@/lib/logger";
 import {
   Dialog,
   DialogDescription,
@@ -60,7 +61,7 @@ const ModalStack = ({
   onOpenChange: (open: boolean) => void;
 }) => {
   if (mode === "dialog") {
-    console.log("dismissible", dismissible);
+    debug.log("dismissible", dismissible);
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogPlaceholder

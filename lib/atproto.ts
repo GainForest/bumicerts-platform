@@ -5,6 +5,7 @@ import {
   createSupabaseStateStore,
 } from "gainforest-sdk/oauth";
 import { createEpdsStateStore } from "@/lib/epds/state-store";
+import { debug } from "@/lib/logger";
 
 export const OAUTH_SCOPE = "atproto transition:generic"
 
@@ -141,15 +142,15 @@ const _sessionStore = createSupabaseSessionStore(supabase, APP_ID);
 export const sessionStore = {
   async get(did: string) {
     const result = await _sessionStore.get(did);
-    console.log('[session-store] GET', { did, found: !!result, hasDpopJwk: !!result?.dpopJwk, hasTokenSet: !!result?.tokenSet, tokenType: result?.tokenSet?.token_type, iss: result?.tokenSet?.iss, sub: result?.tokenSet?.sub });
+    debug.log('[session-store] GET', { did, found: !!result, hasDpopJwk: !!result?.dpopJwk, hasTokenSet: !!result?.tokenSet, tokenType: result?.tokenSet?.token_type, iss: result?.tokenSet?.iss, sub: result?.tokenSet?.sub });
     return result;
   },
   async set(did: string, session: Parameters<typeof _sessionStore.set>[1]) {
-    console.log('[session-store] SET', { did, hasDpopJwk: !!session?.dpopJwk, hasTokenSet: !!session?.tokenSet, tokenType: session?.tokenSet?.token_type, iss: session?.tokenSet?.iss, sub: session?.tokenSet?.sub, hasRefreshToken: !!session?.tokenSet?.refresh_token, hasAccessToken: !!session?.tokenSet?.access_token });
+    debug.log('[session-store] SET', { did, hasDpopJwk: !!session?.dpopJwk, hasTokenSet: !!session?.tokenSet, tokenType: session?.tokenSet?.token_type, iss: session?.tokenSet?.iss, sub: session?.tokenSet?.sub, hasRefreshToken: !!session?.tokenSet?.refresh_token, hasAccessToken: !!session?.tokenSet?.access_token });
     return _sessionStore.set(did, session);
   },
   async del(did: string) {
-    console.log('[session-store] DEL', { did });
+    debug.log('[session-store] DEL', { did });
     return _sessionStore.del(did);
   },
 };

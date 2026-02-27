@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { debug } from "@/lib/logger";
 
 export interface EpdsOAuthState {
   codeVerifier: string;
@@ -27,7 +28,7 @@ export function createEpdsStateStore(
       const key = compositeKey(state);
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-      console.log('[epds-state-store] SET', { key, hasCodeVerifier: !!data.codeVerifier, codeVerifierLength: data.codeVerifier?.length, hasPrivateJwk: !!data.dpopPrivateJwk, hasPrivateJwkD: !!(data.dpopPrivateJwk as JsonWebKey & { d?: string })?.d, expiresAt });
+      debug.log('[epds-state-store] SET', { key, hasCodeVerifier: !!data.codeVerifier, codeVerifierLength: data.codeVerifier?.length, hasPrivateJwk: !!data.dpopPrivateJwk, hasPrivateJwkD: !!(data.dpopPrivateJwk as JsonWebKey & { d?: string })?.d, expiresAt });
 
       const { error } = await supabase
         .from("atproto_oauth_state")
@@ -65,14 +66,14 @@ export function createEpdsStateStore(
       // If not found (PGRST116 = "no rows"), return undefined
       if (error) {
         if (error.code === "PGRST116") {
-          console.log('[epds-state-store] GET', { key, found: false, expired: null });
+          debug.log('[epds-state-store] GET', { key, found: false, expired: null });
           return undefined;
         }
         throw new Error(`ePDS state store get failed: ${error.message}`);
       }
 
       const expired = data.expires_at ? new Date(data.expires_at) < new Date() : false;
-      console.log('[epds-state-store] GET', { key, found: true, expired, expiresAt: data.expires_at });
+      debug.log('[epds-state-store] GET', { key, found: true, expired, expiresAt: data.expires_at });
 
       // Row is already deleted — check expiry and throw if expired
       if (data.expires_at && new Date(data.expires_at) < new Date()) {
@@ -80,7 +81,7 @@ export function createEpdsStateStore(
       }
 
       const result = data.value as EpdsOAuthState;
-      console.log('[epds-state-store] GET result', { key, hasValue: !!result, hasCodeVerifier: !!result?.codeVerifier, hasPrivateJwk: !!result?.dpopPrivateJwk });
+      debug.log('[epds-state-store] GET result', { key, hasValue: !!result, hasCodeVerifier: !!result?.codeVerifier, hasPrivateJwk: !!result?.dpopPrivateJwk });
 
       return result;
     },
@@ -91,7 +92,7 @@ export function createEpdsStateStore(
     async del(state: string): Promise<void> {
       const key = compositeKey(state);
 
-      console.log('[epds-state-store] DEL', { key });
+      debug.log('[epds-state-store] DEL', { key });
 
       const { error } = await supabase
         .from("atproto_oauth_state")
