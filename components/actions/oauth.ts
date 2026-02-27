@@ -125,6 +125,13 @@ export type ProfileData = {
 };
 
 /**
+ * Typed error returned by getProfile() when the caller is not authorized
+ * to fetch the requested DID's profile. Distinct from null ("not found" /
+ * session error) so callers can surface the right message.
+ */
+export type ProfileAuthError = { error: "unauthorized" };
+
+/**
  * Fetches the user's ATProto profile using the hypercerts SDK.
  *
  * This server action restores the OAuth session and uses the repository
@@ -132,26 +139,31 @@ export type ProfileData = {
  * and avatar.
  *
  * @param did - The user's DID
- * @returns Profile data or null if profile doesn't exist or session is invalid
+ * @returns Profile data, null if the profile doesn't exist or the session is
+ *   invalid, or a {@link ProfileAuthError} if the caller's session DID does
+ *   not match the requested DID (unauthorized).
  *
  * @example
  * ```tsx
- * const profile = await getProfile("did:plc:abc123");
- * if (profile) {
- *   console.log(`Hello, ${profile.displayName ?? profile.handle}!`);
+ * const result = await getProfile("did:plc:abc123");
+ * if (result && "error" in result) {
+ *   // Unauthorized — session DID does not match requested DID
+ * } else if (result) {
+ *   console.log(`Hello, ${result.displayName ?? result.handle}!`);
  * }
  * ```
  */
-export async function getProfile(did: string): Promise<ProfileData | null> {
+export async function getProfile(
+  did: string
+): Promise<ProfileData | ProfileAuthError | null> {
   const appSession = await getAppSession();
   if (!appSession.isLoggedIn || appSession.did !== did) {
-    return null;
+    return { error: "unauthorized" };
   }
 
   try {
-    // Re-use the already-validated session from checkSession.
-    // restoreSession here is a lightweight cache hit since checkSession
-    // already verified the session is alive moments ago.
+    // Restore the OAuth session for this DID. getProfile() performs its own
+    // session check above and does not assume checkSession() was called first.
     const session = await atprotoSDK.restoreSession(did);
     if (!session) {
       console.error("Could not restore session for profile fetch");
