@@ -14,14 +14,16 @@ import { BumicertHero } from "./_components/Hero";
 import { BumicertBody } from "./_components/Body";
 import { BumicertDetailHeader } from "./_components/BumicertDetailHeader";
 
+type SupportedImageData = Parameters<typeof getBlobUrl>[1];
+type ImageParam = SupportedImageData | { $type?: string } | null | undefined;
+
 const pdsDomain = allowedPDSDomains[0];
 
-function resolveImageUrl(did: string, image: unknown): string | null {
-  const img = image as { $type?: string } | null | undefined;
-  if (!img?.$type) return null;
+function resolveImageUrl(did: string, image: ImageParam): string | null {
+  if (!image || typeof image === "string") return null;
+  if (typeof image !== "object" || !("$type" in image) || !image.$type) return null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return getBlobUrl(did, img as any, pdsDomain);
+    return getBlobUrl(did, image as SupportedImageData, pdsDomain);
   } catch {
     return null;
   }

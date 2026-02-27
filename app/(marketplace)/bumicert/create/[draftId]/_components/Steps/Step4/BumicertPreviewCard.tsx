@@ -125,7 +125,7 @@ const BumicertPreviewCard = () => {
   const organizationInfo = organizationInfoResponse?.value;
   const logoFromData = isOlderData ? undefined : organizationInfo?.logo;
   const logoUrl = logoFromData
-    ? getBlobUrl(auth.user?.did ?? "", logoFromData.image as any, allowedPDSDomains[0])
+    ? getBlobUrl(auth.user?.did ?? "", logoFromData.image, allowedPDSDomains[0])
     : null;
 
   const isLoadingOrganizationInfo = isPendingOrganizationInfo || isOlderData;

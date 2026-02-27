@@ -34,7 +34,7 @@ const useBlob = ({
     typeof blob === "string"
       ? blob
       : did && blob
-      ? getBlobUrl(did, blob as any, pdsDomain)
+      ? getBlobUrl(did, blob, pdsDomain)
       : null;
   const { data, isPending, error, isPlaceholderData } = useQuery({
     queryKey: ["blob", blob],
