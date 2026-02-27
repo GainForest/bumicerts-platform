@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import { extractColors } from "extract-colors";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 
@@ -25,6 +24,7 @@ export function useAdaptiveColors(imageSrc: string | null): AdaptiveColors {
     queryKey: ["adaptive-colors", imageSrc],
     queryFn: async (): Promise<ExtractedColors | null> => {
       if (!imageSrc) return null;
+      const { extractColors } = await import("extract-colors");
       const colors = await extractColors(imageSrc);
       if (colors.length >= 2) {
         const [bg] = colors.sort((a, b) => b.area - a.area);

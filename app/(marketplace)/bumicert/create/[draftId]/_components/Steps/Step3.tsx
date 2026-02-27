@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React from "react";
 import FormField from "../../../../../../../components/ui/FormField";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,10 +23,8 @@ import { trpcApi } from "@/components/providers/TrpcProvider";
 import { useModal } from "@/components/ui/modal/context";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import {
-  SiteEditorModal,
-  SiteEditorModalId,
-} from "@/components/global/modals/upload/site/editor";
+import { SiteEditorModalId } from "@/components/global/modals/upload/site/editor";
+import dynamic from "next/dynamic";
 import { computePolygonMetrics } from "gainforest-sdk/utilities/geojson";
 import { GetRecordResponse } from "gainforest-sdk/types";
 import { AppCertifiedLocation } from "gainforest-sdk/lex-api";
@@ -39,6 +37,14 @@ import { links } from "@/lib/links";
 import { ContributorRow } from "./ContributorRow";
 import { ContributorSelector } from "./ContributorSelector";
 import QuerySuspense from "@/components/query-suspense";
+
+const SiteEditorModal = dynamic(
+  () =>
+    import("@/components/global/modals/upload/site/editor").then((m) => ({
+      default: m.SiteEditorModal,
+    })),
+  { ssr: false }
+);
 
 const formatCoordinate = (coordinate: string) => {
   const num = parseFloat(coordinate);
@@ -55,9 +61,6 @@ const Step3 = () => {
   const formValues = useFormStore((state) => state.formValues[2]);
   const errors = useFormStore((state) => state.formErrors[2]);
   const setFormValue = useFormStore((state) => state.setFormValue[2]);
-  const updateErrorsAndCompletion = useFormStore(
-    (state) => state.updateErrorsAndCompletion
-  );
   const { contributors, confirmPermissions, agreeTnc, siteBoundaries } =
     formValues;
 
@@ -76,10 +79,6 @@ const Step3 = () => {
       contributors.filter((c) => c.id !== id)
     );
   };
-
-  useEffect(() => {
-    updateErrorsAndCompletion();
-  }, [shouldShowValidationErrors]);
 
   const auth = useAtprotoStore((state) => state.auth);
   const { pushModal, show } = useModal();

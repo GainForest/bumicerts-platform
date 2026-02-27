@@ -28,7 +28,8 @@ import { trpcApi } from "@/components/providers/TrpcProvider";
 import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { trackBumicertPublished, getFlowDurationSeconds } from "@/lib/analytics/hotjar";
-import FeedbackModal from "./FeedbackModal";
+import dynamic from "next/dynamic";
+const FeedbackModal = dynamic(() => import("./FeedbackModal"), { ssr: false });
 
 const ProgressItem = ({
   iconset,

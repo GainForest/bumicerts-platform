@@ -15,7 +15,14 @@ import { useEffect } from "react";
 import Image from "next/image";
 import BumicertIcon from "@/icons/BumicertIcon";
 import { useModal } from "@/components/ui/modal/context";
-import { AuthModal } from "@/components/auth/AuthModal";
+import dynamic from "next/dynamic";
+const AuthModal = dynamic(
+  () =>
+    import("@/components/auth/AuthModal").then((m) => ({
+      default: m.AuthModal,
+    })),
+  { ssr: false }
+);
 
 export default function OnboardingPage() {
   const { currentStep, data } = useOnboardingStore();
