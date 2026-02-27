@@ -1,5 +1,3 @@
-import { supabase } from "@/lib/supabase/client";
-
 const SESSION_ID_KEY = "bumicert_analytics_session";
 const LAST_ACTIVITY_KEY = "bumicert_analytics_last_activity";
 const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -63,6 +61,7 @@ const updateLastActivity = (): void => {
  * Creates or updates a session record.
  */
 export const upsertSession = async (sessionId: string): Promise<void> => {
+  const { supabase } = await import("@/lib/supabase/client");
   const { error } = await supabase.from("analytics_sessions").upsert(
     {
       session_id: sessionId,
@@ -82,6 +81,7 @@ export const upsertSession = async (sessionId: string): Promise<void> => {
  * Updates the session's last activity timestamp.
  */
 const updateSessionActivity = async (sessionId: string): Promise<void> => {
+  const { supabase } = await import("@/lib/supabase/client");
   const { error } = await supabase
     .from("analytics_sessions")
     .update({ last_activity_at: new Date().toISOString() })
@@ -99,6 +99,7 @@ export const markSessionCompleted = async (
   sessionId: string,
   durationSeconds: number
 ): Promise<void> => {
+  const { supabase } = await import("@/lib/supabase/client");
   const { error } = await supabase
     .from("analytics_sessions")
     .update({
@@ -130,6 +131,8 @@ export const insertEvent = async (
 ): Promise<void> => {
   const sessionId = getOrCreateSessionId();
   updateLastActivity();
+
+  const { supabase } = await import("@/lib/supabase/client");
 
   // Insert event and update session activity in parallel
   const [eventResult] = await Promise.all([

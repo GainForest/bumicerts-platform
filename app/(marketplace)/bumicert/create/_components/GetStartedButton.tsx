@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { links } from "@/lib/links";
-import { trackBumicertFlowStarted } from "@/lib/analytics";
+import { trackBumicertFlowStarted } from "@/lib/analytics/hotjar";
 
 const GetStartedButton = () => {
   const handleClick = () => {
