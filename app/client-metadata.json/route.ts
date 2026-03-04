@@ -37,7 +37,7 @@ export async function GET() {
     client_name: "Bumicerts",
     client_uri: PUBLIC_URL,
     logo_uri: `${PUBLIC_URL}/assets/media/images/logo.png`,
-    brand_color: '#2FCE8A',
+    brand_color: '#3E7053',
     background_color: '#FFFFFF',
     email_template_uri: `${PUBLIC_URL}/assets/email/otp-template.html`,
     email_subject_template: '{{code}} — Your {{app_name}} sign-in code',
