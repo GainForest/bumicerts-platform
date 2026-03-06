@@ -270,17 +270,15 @@ export function LoginModal({ onClose }: LoginModalProps) {
         </p>
       </div>
 
-      {/* TODO: Re-enable handle login toggle when ready */}
-      {/* {hasEpds && (
+      {hasEpds && (
         <div className="mb-6">
           <PillToggle active={activeTab} onChange={setActiveTab} />
         </div>
-      )} */}
+      )}
 
       {/* Form */}
       <AnimatePresence mode="wait">
-        {/* TODO: Re-enable handle login when ready */}
-        {/* {hasEpds && activeTab === "email" ? ( */}
+        {hasEpds && activeTab === "email" ? (
           <motion.div
             key="email"
             initial={{ opacity: 0, x: 8 }}
@@ -290,7 +288,7 @@ export function LoginModal({ onClose }: LoginModalProps) {
           >
             <EmailForm />
           </motion.div>
-        {/* ) : (
+        ) : (
           <motion.div
             key="handle"
             initial={{ opacity: 0, x: -8 }}
@@ -300,7 +298,7 @@ export function LoginModal({ onClose }: LoginModalProps) {
           >
             <HandleForm />
           </motion.div>
-        )} */}
+        )}
       </AnimatePresence>
 
       <div className="flex items-center gap-3 my-4">
