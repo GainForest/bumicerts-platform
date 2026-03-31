@@ -13,16 +13,26 @@ import {
   computeRecentTransactions,
   type TimeGranularity,
 } from "../_utils/aggregations";
+import { computeGeoStats, type GeoStats } from "../_utils/geo-aggregations";
 import { DashboardShell } from "./DashboardShell";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { PeriodFilter, useDashboardPeriod } from "./PeriodFilter";
 import { KPISummary } from "./KPISummary";
+import { GeographicReach } from "./GeographicReach";
 import { DonationsChart } from "./DonationsChart";
 import { TopDonorsTable } from "./TopDonorsTable";
 import { OrganizationsTable } from "./OrganizationsTable";
 import { RecentTransactionsTable } from "./RecentTransactionsTable";
 
-export function DashboardClient() {
+interface DashboardClientProps {
+  /**
+   * Org DID -> ISO 3166-1 alpha-2 country code, fetched server-side.
+   * Serialised as a plain Record so it can cross the server/client boundary.
+   */
+  orgCountryMap: Record<string, string>;
+}
+
+export function DashboardClient({ orgCountryMap: orgCountryRecord }: DashboardClientProps) {
   const { period, setPeriod } = useDashboardPeriod();
   const [granularity, setGranularity] = useState<TimeGranularity>("day");
 
@@ -38,9 +48,21 @@ export function DashboardClient() {
     [rawReceipts],
   );
 
+  /** Convert the serialised Record into a Map for efficient lookups. */
+  const orgCountryMap = useMemo(
+    () => new Map(Object.entries(orgCountryRecord)),
+    [orgCountryRecord],
+  );
+
   const periodFiltered = useMemo(() => filterByPeriod(receipts, period), [receipts, period]);
 
   const kpis = useMemo(() => computeKPIs(periodFiltered), [periodFiltered]);
+
+  /** Geographic reach — counts all orgs on the platform, not just funded ones. */
+  const geoStats: GeoStats = useMemo(
+    () => computeGeoStats(orgCountryMap),
+    [orgCountryMap],
+  );
   const timeSeries = useMemo(
     () => computeTimeSeries(periodFiltered, granularity),
     [periodFiltered, granularity],
@@ -63,6 +85,9 @@ export function DashboardClient() {
         <div className="flex flex-col gap-12">
           {/* KPIs */}
           <KPISummary kpis={kpis} />
+
+          {/* Geographic reach */}
+          <GeographicReach stats={geoStats} />
 
           {/* Chart */}
           <DonationsChart

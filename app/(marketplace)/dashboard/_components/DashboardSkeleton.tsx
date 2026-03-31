@@ -33,6 +33,18 @@ export function DashboardSkeleton() {
         ))}
       </div>
 
+      {/* Geographic reach */}
+      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4">
+        <KPICardSkeleton />
+        <div className="rounded-2xl border border-border bg-background p-5 space-y-3">
+          <Skeleton className="h-3 w-24" />
+          {Array.from({ length: 5 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows have no identity
+            <Skeleton key={i} className="h-5 w-full" />
+          ))}
+        </div>
+      </div>
+
       {/* Chart */}
       <div className="rounded-2xl border border-border bg-background p-5 space-y-4">
         <Skeleton className="h-3 w-40" />

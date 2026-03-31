@@ -67,7 +67,7 @@ const USD_CURRENCIES = ["USD", "USDC"] as const;
 /**
  * Returns true if the receipt currency represents a USD-denominated token.
  */
-function isUsdCurrency(currency: string | null | undefined): boolean {
+export function isUsdCurrency(currency: string | null | undefined): boolean {
   if (!currency) return false;
   const upper = currency.toUpperCase() as string;
   return (USD_CURRENCIES as readonly string[]).includes(upper);
@@ -100,7 +100,7 @@ export function blockExplorerUrl(
  * Safely parses an amount string, returning 0 for any non-numeric value.
  * Prevents NaN from propagating through aggregation totals.
  */
-function safeAmount(raw: string | null | undefined): number {
+export function safeAmount(raw: string | null | undefined): number {
   const parsed = parseFloat(raw ?? "0");
   return Number.isNaN(parsed) ? 0 : parsed;
 }
