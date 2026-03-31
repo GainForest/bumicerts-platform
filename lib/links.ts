@@ -48,6 +48,11 @@ export const links = {
     github: "https://www.github.com/GainForest/atproto-packages",
     twitter: "https://www.x.com/GainForestNow",
     gainforest: "https://www.gainforest.earth",
+    gbifPublisher:
+      "https://www.gbif.org/publisher/c02486e8-eb54-4e94-81d8-1038cc58e208",
+  },
+  assets: {
+    treeDataTemplate: "/templates/tree-data-template.csv",
   },
   api: {
     onboarding: {
