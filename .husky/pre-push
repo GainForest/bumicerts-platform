@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# ── Vendor cleanliness check ─────────────────────────────────────────────────
+# Blocks pushes when vendor/vendor.json has clean: false.
+#
+# Even if a WIP commit was made with --no-verify, pushing unreproducible
+# vendor to the remote is blocked here. Every pushed commit must reference
+# a clean, committed state of atproto-packages.
+#
+# For resolution instructions, see: vendor/AGENTS.md
+# ─────────────────────────────────────────────────────────────────────────────
+
+if [ -f "vendor/vendor.json" ]; then
+  clean=$(node -e "
+    try {
+      const v = JSON.parse(require('fs').readFileSync('vendor/vendor.json', 'utf8'));
+      process.stdout.write(String(v.source.clean));
+    } catch(e) {
+      process.stdout.write('unknown');
+    }
+  ")
+
+  if [ "$clean" = "false" ]; then
+    echo ""
+    echo "  ✗ PUSH BLOCKED — vendor/vendor.json has clean: false"
+    echo ""
+    echo "  The vendor was generated while atproto-packages had uncommitted"
+    echo "  changes. Pushing this would make the build unreproducible for"
+    echo "  anyone trying to roll back to this commit."
+    echo ""
+    echo "  To fix:"
+    echo "    1. Commit and push your changes in atproto-packages"
+    echo "    2. Re-run:  bun run vendor:generate"
+    echo "    3. Commit the updated vendor/"
+    echo "    4. Push again"
+    echo ""
+    echo "  ⚠️  To bypass (NOT RECOMMENDED — vendor will be unreproducible):"
+    echo "    git push --no-verify"
+    echo ""
+    echo "  AI agents: read vendor/AGENTS.md for resolution steps."
+    echo ""
+    exit 1
+  fi
+fi

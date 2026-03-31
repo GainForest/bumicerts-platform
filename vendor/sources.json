@@ -1,0 +1,39 @@
+{
+  "_README": "Declares which monorepo packages bumicerts depends on. Read by vendor/generate.ts to build, pack, and patch package.json. See vendor/README.md for full documentation.",
+  "monorepoPath": "../../..",
+  "packages": [
+    {
+      "name": "@gainforest/atproto-auth-next",
+      "type": "buildable",
+      "dependencyField": "dependencies"
+    },
+    {
+      "name": "@gainforest/atproto-mutations-next",
+      "type": "buildable",
+      "dependencyField": "dependencies"
+    },
+    {
+      "name": "@gainforest/atproto-mutations-core",
+      "type": "buildable",
+      "dependencyField": "dependencies",
+      "transitive": true
+    },
+    {
+      "name": "@gainforest/internal-utils",
+      "type": "buildable",
+      "dependencyField": "dependencies",
+      "transitive": true
+    },
+    {
+      "name": "@gainforest/leaflet-react",
+      "type": "buildable",
+      "dependencyField": "dependencies"
+    },
+    {
+      "name": "@gainforest/generated",
+      "type": "source-only",
+      "dependencyField": "dependencies",
+      "transitive": true
+    }
+  ]
+}

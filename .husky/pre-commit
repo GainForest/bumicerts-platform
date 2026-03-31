@@ -1,0 +1,49 @@
+#!/bin/sh
+
+# ── Vendor cleanliness check ─────────────────────────────────────────────────
+# Blocks commits that stage vendor/vendor.json with clean: false.
+#
+# This protects reproducibility: every committed vendor must reference a
+# specific, clean commit in atproto-packages so it can be rebuilt exactly.
+#
+# To bypass for WIP (CANNOT be pushed): git commit --no-verify
+# For resolution instructions, see: vendor/AGENTS.md
+# ─────────────────────────────────────────────────────────────────────────────
+
+if git diff --cached --name-only 2>/dev/null | grep -q "vendor/vendor.json"; then
+  if [ -f "vendor/vendor.json" ]; then
+    clean=$(node -e "
+      try {
+        const v = JSON.parse(require('fs').readFileSync('vendor/vendor.json', 'utf8'));
+        process.stdout.write(String(v.source.clean));
+      } catch(e) {
+        process.stdout.write('unknown');
+      }
+    ")
+
+    if [ "$clean" = "false" ]; then
+      echo ""
+      echo "  ✗ COMMIT BLOCKED — vendor/vendor.json has clean: false"
+      echo ""
+      echo "  The vendor was generated while atproto-packages had uncommitted"
+      echo "  changes. This commit would be unreproducible — there is no git"
+      echo "  commit that can rebuild this exact vendor."
+      echo ""
+      echo "  To fix:"
+      echo "    1. Commit your changes in atproto-packages"
+      echo "    2. Re-run:  bun run vendor:generate"
+      echo "    3. Commit again"
+      echo ""
+      echo "  To commit as WIP (cannot be pushed later without fixing):"
+      echo "    git commit --no-verify"
+      echo ""
+      echo "  AI agents: read vendor/AGENTS.md for resolution steps."
+      echo ""
+      exit 1
+    fi
+  fi
+fi
+
+# ── Typecheck + Lint ──────────────────────────────────────────────────────────
+bun run typecheck
+bun run lint
