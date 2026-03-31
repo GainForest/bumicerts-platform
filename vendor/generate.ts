@@ -328,16 +328,24 @@ async function main() {
     const tmpPkgDir = join(TMP_DIR, folderName(entry.name));
     cpSync(dir, tmpPkgDir, { recursive: true });
 
-    // Patch workspace:* refs in temp copy, remove private flag
+    // Patch workspace:* refs in temp copy to "*" so bun resolves them
+    // from the outer package.json (which has the correct file: tarball refs).
+    // Using file:./vendor/... here would resolve relative to the tarball's
+    // install location inside node_modules, not the app root — causing failures.
     const tmpPkgJsonPath = join(tmpPkgDir, "package.json");
     const tmpPkg = readJson<Record<string, unknown>>(tmpPkgJsonPath);
 
     for (const field of ["dependencies", "devDependencies", "peerDependencies"]) {
       const deps = tmpPkg[field] as Record<string, string> | undefined;
       if (!deps) continue;
-      for (const [dep, ver] of Object.entries(deps)) {
-        if (ver === "workspace:*" && fileRefMap[dep]) {
-          deps[dep] = fileRefMap[dep];
+      for (const dep of Object.keys(deps)) {
+        if (deps[dep] === "workspace:*" && fileRefMap[dep]) {
+          // Remove internal workspace deps from the tarball entirely.
+          // They are already declared in the app's package.json as file: refs
+          // and will be hoisted correctly by bun. Keeping them inside the tarball
+          // causes bun to try resolving them from the registry (which fails since
+          // these are private packages not published to npm).
+          delete deps[dep];
         }
       }
     }
