@@ -5,7 +5,7 @@
       "*": true
     }
   },
-  "installCommand": "cd ../.. && bun install",
-  "buildCommand": "cd ../.. && bun run bumicerts:vercel-build",
+  "installCommand": "bun install",
+  "buildCommand": "bun run build",
   "framework": "nextjs"
 }
