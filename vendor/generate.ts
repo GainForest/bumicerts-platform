@@ -31,6 +31,7 @@ import {
 } from "fs";
 import { resolve, join, relative, dirname } from "path";
 import { spawnSync } from "child_process";
+import { fileURLToPath } from "url";
 
 // ── CLI args ──────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ const MONOREPO_OVERRIDE = getArg("--monorepo");
 
 // ── Paths ─────────────────────────────────────────────────────────────────────
 
-const VENDOR_DIR  = resolve(dirname(new URL(import.meta.url as string).pathname));
+const VENDOR_DIR  = resolve(dirname(fileURLToPath(import.meta.url)));
 const APP_DIR     = resolve(VENDOR_DIR, "..");
 const TMP_DIR     = join(VENDOR_DIR, ".tmp-pack");
 const SOURCES_PATH  = join(VENDOR_DIR, "sources.json");
