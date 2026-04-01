@@ -7,17 +7,16 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
   skipProxyUrlNormalize: true,
 
-
-
-  // Compile workspace packages from TypeScript source directly.
-  // Without this, Turbopack would look for dist/ which is gitignored.
+  // When developing alongside the monorepo, tsconfig paths point to raw TypeScript
+  // source files in ../atproto-packages/packages/. These entries tell Turbopack to
+  // compile those packages from source instead of expecting pre-built dist/.
+  // In standalone/Vercel builds the vendor tarballs include dist/ so this is a no-op.
   transpilePackages: [
     "@gainforest/atproto-auth-next",
     "@gainforest/atproto-mutations-core",
     "@gainforest/atproto-mutations-next",
     "@gainforest/internal-utils",
     "@gainforest/generated",
-    "multiformats",
   ],
 
   images: {
@@ -34,17 +33,6 @@ const nextConfig: NextConfig = {
     viewTransition: true,
     serverActions: {
       bodySizeLimit: "15mb",
-    },
-  },
-
-  turbopack: {
-    resolveAlias: {
-      // multiformats is ESM-only; @atproto/lexicon's CJS dist tries to
-      // require() it. Alias subpaths to their ESM dist so Turbopack handles it.
-      "multiformats/cid": "../../node_modules/multiformats/dist/src/cid.js",
-      "multiformats/bases/base58": "../../node_modules/multiformats/dist/src/bases/base58.js",
-      "multiformats/hashes/digest": "../../node_modules/multiformats/dist/src/hashes/digest.js",
-      "multiformats/hashes/hasher": "../../node_modules/multiformats/dist/src/hashes/hasher.js",
     },
   },
 };

@@ -5,7 +5,7 @@
  * Builds, packs, and installs all monorepo packages into vendor/ so that
  * bumicerts can run as a fully standalone app without the monorepo.
  *
- * Usage (from apps/bumicerts root):
+ * Usage (from the app root directory):
  *   bun run vendor:generate                       # full build + pack
  *   bun run vendor:generate -- --no-build         # skip build, use existing dist/
  *   bun run vendor:generate -- --monorepo <path>  # override monorepo location
@@ -211,7 +211,7 @@ async function main() {
   log("Step 1 — Reading vendor/sources.json");
 
   if (!existsSync(SOURCES_PATH)) {
-    fail("vendor/sources.json not found. Are you running this from apps/bumicerts/?");
+    fail("vendor/sources.json not found. Run this script from the app root directory.");
   }
 
   const sources = readJson<Sources>(SOURCES_PATH);
@@ -231,7 +231,7 @@ async function main() {
   ) {
     fail(
       `Monorepo not found at: ${monorepoRoot}\n\n` +
-      `  If bumicerts is not inside atproto-packages, pass the path explicitly:\n` +
+      `  Pass the monorepo path explicitly:\n` +
       `    bun run vendor:generate -- --monorepo /path/to/atproto-packages\n\n` +
       `  If you are developing app-only and don't have the monorepo,\n` +
       `  the existing vendor/ tarballs are already committed — run bun install.`
@@ -440,7 +440,7 @@ async function main() {
 
   step("Written vendor/vendor.json");
 
-  // ── 11. Patch apps/bumicerts/package.json ────────────────────────────────────
+  // ── 11. Patch package.json ───────────────────────────────────────────────────
   log("Step 11 — Patching package.json");
 
   const appPkg = readJson<Record<string, unknown>>(APP_PKG_PATH);

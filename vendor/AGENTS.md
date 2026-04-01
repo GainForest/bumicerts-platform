@@ -80,8 +80,8 @@ A WIP commit (made with `--no-verify`) is in the push range, and the vendor is s
    git commit -m "your message"
    git push
    
-   # 2. Regenerate vendor in bumicerts
-   cd /path/to/bumicerts
+   # 2. Regenerate vendor in bumicerts-platform
+   cd /path/to/bumicerts-platform
    bun run vendor:generate
    
    # 3. Amend the last commit or make a new one
@@ -138,12 +138,12 @@ If a new internal package from `atproto-packages` needs to be added:
 Whenever `atproto-packages` packages change and you need bumicerts to use the latest:
 
 ```bash
-# From apps/bumicerts/
+# From the bumicerts-platform root
 bun run vendor:generate
 bun install
 ```
 
-If the monorepo is not at the default location (`../..` from vendor/):
+If the monorepo is not at the default location (sibling `atproto-packages/` directory):
 ```bash
 bun run vendor:generate -- --monorepo /path/to/atproto-packages
 ```

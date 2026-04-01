@@ -1,6 +1,6 @@
 {
   "_README": "Declares which monorepo packages bumicerts depends on. Read by vendor/generate.ts to build, pack, and patch package.json. See vendor/README.md for full documentation.",
-  "monorepoPath": "../../..",
+  "monorepoPath": "../../atproto-packages",
   "packages": [
     {
       "name": "@gainforest/atproto-auth-next",

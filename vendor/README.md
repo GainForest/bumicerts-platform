@@ -25,24 +25,24 @@ You need the monorepo when you want to make changes to internal packages and tes
 
 ### Setup
 
-1. Clone [`atproto-packages`](https://github.com/gainforest/atproto-packages)
-2. Place this repo inside it at `apps/bumicerts/`:
+1. Clone [`atproto-packages`](https://github.com/gainforest/atproto-packages) as a **sibling** of this repo:
    ```
-   atproto-packages/
-     apps/
-       bumicerts/   ← this repo
-     packages/
-       atproto-mutations-next/
-       ...
+   some-parent/
+     atproto-packages/    ← monorepo
+       packages/
+         atproto-mutations-next/
+         ...
+     bumicerts-platform/  ← this repo
+       vendor/
    ```
-3. Run `bun install` from the monorepo root to set up workspaces
+2. Run `bun install` from this repo's root (not the monorepo root)
 
 ### Regenerating vendor after package changes
 
 After you make changes to any package in the monorepo:
 
 ```bash
-# From apps/bumicerts/
+# From the bumicerts-platform root
 bun run vendor:generate
 ```
 
@@ -69,7 +69,7 @@ bun run vendor:generate -- --no-build
 
 ### Monorepo in a custom location
 
-If your monorepo is not at `../..` relative to `vendor/`:
+By default the script expects `atproto-packages` to be a sibling of `bumicerts-platform`. If your monorepo is elsewhere, pass the path explicitly:
 
 ```bash
 bun run vendor:generate -- --monorepo /path/to/atproto-packages
