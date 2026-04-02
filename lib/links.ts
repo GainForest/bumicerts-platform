@@ -26,6 +26,7 @@ export const links = {
     audio: "/upload/audio",
     bumicerts: "/upload/bumicerts",
     trees: "/upload/trees",
+    treesManage: "/upload/trees/manage",
   },
   user: didCatcher((did) => `/user/${did}`),
   explore: "/explore",
