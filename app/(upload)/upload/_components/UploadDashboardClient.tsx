@@ -74,7 +74,10 @@ type PendingIndexerSync = {
   previousCoverImageUrl: string | null;
   awaitLogoUrl: boolean;
   awaitCoverImageUrl: boolean;
+  imageSyncDeadlineAt: number;
 };
+
+const IMAGE_SYNC_FALLBACK_MS = 20_000;
 
 function sameLongDescription(
   left: OrganizationData["longDescription"] | undefined,
@@ -87,6 +90,8 @@ function matchesPendingIndexerSync(
   org: OrganizationData,
   pending: PendingIndexerSync
 ): boolean {
+  const imageSyncTimedOut = Date.now() >= pending.imageSyncDeadlineAt;
+
   if (
     pending.expected.displayName !== undefined &&
     org.displayName !== pending.expected.displayName
@@ -132,6 +137,7 @@ function matchesPendingIndexerSync(
 
   if (
     pending.awaitLogoUrl &&
+    !imageSyncTimedOut &&
     (!org.logoUrl || org.logoUrl === pending.previousLogoUrl)
   ) {
     return false;
@@ -139,6 +145,7 @@ function matchesPendingIndexerSync(
 
   if (
     pending.awaitCoverImageUrl &&
+    !imageSyncTimedOut &&
     (!org.coverImageUrl || org.coverImageUrl === pending.previousCoverImageUrl)
   ) {
     return false;
@@ -261,6 +268,7 @@ export function UploadDashboardClient({ did }: UploadDashboardClientProps) {
           previousCoverImageUrl: current.coverImageUrl ?? null,
           awaitLogoUrl: edits.logo !== null,
           awaitCoverImageUrl: edits.coverImage !== null,
+          imageSyncDeadlineAt: Date.now() + IMAGE_SYNC_FALLBACK_MS,
         };
       }
 
