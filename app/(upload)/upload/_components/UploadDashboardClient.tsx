@@ -27,7 +27,7 @@
  *      optimistic data with real CDN URLs once the indexer has processed it.
  */
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { trpc } from "@/lib/trpc/client";
 import { indexerTrpc } from "@/lib/trpc/indexer/client";
@@ -63,6 +63,7 @@ export function UploadDashboardClient({ did }: UploadDashboardClientProps) {
   const indexerUtils = indexerTrpc.useUtils();
   const [mode, setMode] = useUploadMode();
   const isEditing = mode === "edit";
+  const lastServerSyncAt = useRef(0);
 
   // ── Store ───────────────────────────────────────────────────────────────────
   const serverData = useUploadDashboardStore((s) => s.serverData);
@@ -75,16 +76,22 @@ export function UploadDashboardClient({ did }: UploadDashboardClientProps) {
   const hasChanges = useUploadDashboardStore((s) => s.hasChanges);
 
   // ── Data fetch ──────────────────────────────────────────────────────────────
-  const { data: orgData, isLoading, error } = indexerTrpc.organization.byDid.useQuery({ did });
-  const fetchedOrg = orgData?.org
-    ? orgInfoToOrganizationData(orgData.org as GraphQLOrgInfoItem, 0)
-    : null;
+  const {
+    data: orgData,
+    dataUpdatedAt,
+    isLoading,
+    error,
+  } = indexerTrpc.organization.byDid.useQuery({ did });
+  const hasFetchedOrg = orgData?.org !== null && orgData?.org !== undefined;
 
   useEffect(() => {
-    if (fetchedOrg) {
-      setServerData(fetchedOrg);
+    if (!orgData?.org || dataUpdatedAt === 0 || lastServerSyncAt.current === dataUpdatedAt) {
+      return;
     }
-  }, [fetchedOrg, setServerData]);
+
+    lastServerSyncAt.current = dataUpdatedAt;
+    setServerData(orgInfoToOrganizationData(orgData.org as GraphQLOrgInfoItem, 0));
+  }, [dataUpdatedAt, orgData, setServerData]);
 
   // ── Mutations ───────────────────────────────────────────────────────────────
   const updateMutation = trpc.organization.info.update.useMutation({
@@ -238,7 +245,7 @@ export function UploadDashboardClient({ did }: UploadDashboardClientProps) {
   }
 
   // Organization doesn't exist yet — prompt user to set it up
-  if (!fetchedOrg && !serverData) {
+  if (!hasFetchedOrg && !serverData) {
     return (
       <Container className="pt-4">
         <OrgSetupPrompt did={did} />
