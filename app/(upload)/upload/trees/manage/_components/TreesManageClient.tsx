@@ -148,13 +148,28 @@ function sameOccurrenceRecord(
   left: NonNullable<OccurrenceItem["record"]>,
   right: NonNullable<OccurrenceItem["record"]>
 ): boolean {
-  return sameJsonValue(left, right);
+  return (
+    left.scientificName === right.scientificName &&
+    left.vernacularName === right.vernacularName &&
+    left.eventDate === right.eventDate &&
+    left.recordedBy === right.recordedBy &&
+    left.locality === right.locality &&
+    left.country === right.country &&
+    left.decimalLatitude === right.decimalLatitude &&
+    left.decimalLongitude === right.decimalLongitude &&
+    left.occurrenceRemarks === right.occurrenceRemarks &&
+    left.habitat === right.habitat
+  );
 }
 
 function sameMeasurementItem(left: MeasurementItem, right: MeasurementItem): boolean {
   return (
     left.metadata.rkey === right.metadata.rkey &&
-    sameJsonValue(left.record, right.record)
+    left.record.occurrenceRef === right.record.occurrenceRef &&
+    left.record.schemaVersion === right.record.schemaVersion &&
+    left.record.measurementMethod === right.record.measurementMethod &&
+    left.record.measurementRemarks === right.record.measurementRemarks &&
+    sameJsonValue(left.record.result, right.record.result)
   );
 }
 

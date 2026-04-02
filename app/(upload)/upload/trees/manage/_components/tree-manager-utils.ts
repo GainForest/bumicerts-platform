@@ -215,20 +215,17 @@ export function getPhotoUrl(photo: MultimediaItem): string | null {
   }
 
   const withUri = rawFile as BlobWithUri;
+  if (typeof withUri.uri === "string") {
+    return withUri.uri;
+  }
+
   const cid = getBlobCid(withUri);
 
   if (!cid) {
     return photo.record.accessUri;
   }
 
-  const did = photo.metadata.did;
-  if (typeof did !== "string" || did.length === 0) {
-    return photo.record.accessUri;
-  }
-
-  return `/api/atproto/blob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(
-    cid
-  )}`;
+  return photo.record.accessUri;
 }
 
 export function formatTreeSubtitle(item: TreeManagerItem): string {
