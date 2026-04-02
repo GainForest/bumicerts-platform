@@ -140,6 +140,35 @@ function revokeBlobUrl(url: string | null | undefined) {
   }
 }
 
+function sameJsonValue(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+}
+
+function sameOccurrenceRecord(
+  left: NonNullable<OccurrenceItem["record"]>,
+  right: NonNullable<OccurrenceItem["record"]>
+): boolean {
+  return sameJsonValue(left, right);
+}
+
+function sameMeasurementItem(left: MeasurementItem, right: MeasurementItem): boolean {
+  return (
+    left.metadata.rkey === right.metadata.rkey &&
+    sameJsonValue(left.record, right.record)
+  );
+}
+
+function sameMeasurementSet(
+  left: MeasurementItem[],
+  right: MeasurementItem[]
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((item, index) => sameMeasurementItem(item, right[index]!));
+}
+
 function createOptimisticMeasurementItem(
   did: string,
   occurrenceUri: string,
@@ -357,7 +386,10 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
       const optimisticRecord = optimisticOccurrenceRecords[rkey];
       return [{
         ...item,
-        record: optimisticRecord ?? record,
+        record:
+          optimisticRecord && !sameOccurrenceRecord(record, optimisticRecord)
+            ? optimisticRecord
+            : record,
       }];
     });
   }, [
@@ -371,13 +403,36 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
       Object.keys(optimisticMeasurementRecords)
     );
 
-    const baseMeasurements = (measurementsQuery.data ?? []).filter((item) => {
+    const baseMeasurements = measurementsQuery.data ?? [];
+    const measurementsByOccurrence = new Map<string, MeasurementItem[]>();
+
+    for (const item of baseMeasurements) {
+      const occurrenceRef = item.record.occurrenceRef;
+      if (!occurrenceRef) {
+        continue;
+      }
+
+      const existing = measurementsByOccurrence.get(occurrenceRef) ?? [];
+      existing.push(item);
+      measurementsByOccurrence.set(occurrenceRef, existing);
+    }
+
+    const mergedForOverrides = Object.entries(optimisticMeasurementRecords).flatMap(
+      ([occurrenceUri, optimisticItems]) => {
+        const serverItems = measurementsByOccurrence.get(occurrenceUri) ?? [];
+
+        return sameMeasurementSet(serverItems, optimisticItems)
+          ? serverItems
+          : optimisticItems;
+      }
+    );
+
+    const untouchedMeasurements = baseMeasurements.filter((item) => {
       const occurrenceRef = item.record.occurrenceRef;
       return !occurrenceRef || !overriddenOccurrenceUris.has(occurrenceRef);
     });
 
-    const optimisticMeasurements = Object.values(optimisticMeasurementRecords).flat();
-    return [...optimisticMeasurements, ...baseMeasurements];
+    return [...mergedForOverrides, ...untouchedMeasurements];
   }, [measurementsQuery.data, optimisticMeasurementRecords]);
 
   const mergedMultimedia = useMemo(() => {
@@ -1032,10 +1087,12 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
                           {item.photos.length > 0 ? (
                             <Badge variant="outline">{item.photos.length} photos</Badge>
                           ) : null}
-                          {item.floraMeasurement ? (
-                            <Badge variant="success">Measurements</Badge>
-                          ) : item.hasLegacyMeasurements || item.hasUnsupportedMeasurements ? (
-                            <Badge variant="secondary">Migration needed</Badge>
+                            {item.hasDuplicateBundledMeasurements ? (
+                              <Badge variant="secondary">Needs cleanup</Badge>
+                            ) : item.floraMeasurement ? (
+                              <Badge variant="success">Measurements</Badge>
+                            ) : item.hasLegacyMeasurements || item.hasUnsupportedMeasurements ? (
+                              <Badge variant="secondary">Migration needed</Badge>
                           ) : null}
                         </div>
                       </div>
@@ -1092,7 +1149,9 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
 
                   <div className="flex flex-wrap gap-2 shrink-0">
                     <Badge variant="outline">{activeTree.photos.length} photos</Badge>
-                    {activeTree.floraMeasurement ? (
+                    {activeTree.hasDuplicateBundledMeasurements ? (
+                      <Badge variant="secondary">Needs cleanup</Badge>
+                    ) : activeTree.floraMeasurement ? (
                       <Badge variant="success">Measurements ready</Badge>
                     ) : activeTree.hasLegacyMeasurements || activeTree.hasUnsupportedMeasurements ? (
                       <Badge variant="secondary">Migration needed</Badge>
@@ -1427,7 +1486,7 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
 
               <SectionCard
                 title="Danger zone"
-                description="Delete this tree record and all linked measurements and photos."
+                description="Delete this tree record after linked measurements and photos have been removed."
                 className="border-destructive/20"
               >
                 <div className="flex flex-col gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between">

@@ -4,6 +4,8 @@ const BLOB_PATH = "/xrpc/com.atproto.sync.getBlob";
 const DID_PDS_SERVICE_TYPE = "AtprotoPersonalDataServer";
 const didHostCache = new Map<string, string>();
 
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
+
 function badRequest(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
@@ -16,12 +18,79 @@ function normalizeHost(host: string): string {
   return host.replace(/\/+$/, "");
 }
 
+function isPrivateIpv4(hostname: string): boolean {
+  const match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) {
+    return false;
+  }
+
+  const [a, b] = [Number(match[1]), Number(match[2])];
+
+  return (
+    a === 10 ||
+    a === 127 ||
+    a === 0 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168)
+  );
+}
+
+function isPrivateIpv6(hostname: string): boolean {
+  const normalized = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+
+  return (
+    normalized === "::1" ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    normalized.startsWith("fe80:")
+  );
+}
+
+function isSafePublicHostname(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase();
+
+  if (!normalized || LOCAL_HOSTNAMES.has(normalized)) {
+    return false;
+  }
+
+  if (normalized.endsWith(".localhost") || normalized.endsWith(".local")) {
+    return false;
+  }
+
+  if (isPrivateIpv4(normalized) || isPrivateIpv6(normalized)) {
+    return false;
+  }
+
+  return true;
+}
+
+function assertSafePublicUrl(rawUrl: string, errorMessage: string): URL {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error(errorMessage);
+  }
+
+  if (parsed.protocol !== "https:") {
+    throw new Error(errorMessage);
+  }
+
+  if (parsed.username || parsed.password || !isSafePublicHostname(parsed.hostname)) {
+    throw new Error(errorMessage);
+  }
+
+  return parsed;
+}
+
 function getDidWebDocumentUrl(did: string): string {
   const encoded = did.slice("did:web:".length);
   const parts = encoded.split(":").map(decodeURIComponent);
   const [host, ...pathParts] = parts;
 
-  if (!host) {
+  if (!host || !isSafePublicHostname(host)) {
     throw new Error("Invalid did:web identifier.");
   }
 
@@ -97,7 +166,11 @@ async function resolvePdsHost(did: string): Promise<string> {
     throw new Error("DID document does not expose a PDS service endpoint.");
   }
 
-  const normalized = normalizeHost(endpoint);
+  const endpointUrl = assertSafePublicUrl(
+    endpoint,
+    "DID document exposes an unsupported PDS service endpoint."
+  );
+  const normalized = normalizeHost(endpointUrl.toString());
   didHostCache.set(did, normalized);
   return normalized;
 }
