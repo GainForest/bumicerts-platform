@@ -603,6 +603,66 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const resetHandle = window.setTimeout(() => {
+      setOptimisticOccurrenceRecords((current) => {
+        let changed = false;
+        const serverByRkey = new Map(
+          (occurrencesQuery.data ?? [])
+            .flatMap((item) => {
+              const rkey = item.metadata?.rkey;
+              const record = item.record;
+              return rkey && record ? [[rkey, record] as const] : [];
+            })
+        );
+
+        const remainingEntries = Object.entries(current).filter(([rkey, optimisticRecord]) => {
+          const serverRecord = serverByRkey.get(rkey);
+          const keep = !serverRecord || !sameOccurrenceRecord(serverRecord, optimisticRecord);
+          if (!keep) {
+            changed = true;
+          }
+          return keep;
+        });
+
+        return changed
+          ? (Object.fromEntries(remainingEntries) as typeof current)
+          : current;
+      });
+
+      setOptimisticMeasurementRecords((current) => {
+        let changed = false;
+        const serverByOccurrence = new Map<string, MeasurementItem[]>();
+
+        for (const item of measurementsQuery.data ?? []) {
+          const occurrenceRef = item.record.occurrenceRef;
+          if (!occurrenceRef) {
+            continue;
+          }
+
+          const existing = serverByOccurrence.get(occurrenceRef) ?? [];
+          existing.push(item);
+          serverByOccurrence.set(occurrenceRef, existing);
+        }
+
+        const remainingEntries = Object.entries(current).filter(([occurrenceUri, optimisticItems]) => {
+          const serverItems = serverByOccurrence.get(occurrenceUri) ?? [];
+          const keep = !sameMeasurementSet(serverItems, optimisticItems);
+          if (!keep) {
+            changed = true;
+          }
+          return keep;
+        });
+
+        return changed
+          ? (Object.fromEntries(remainingEntries) as typeof current)
+          : current;
+      });
+    }, 0);
+
+    return () => window.clearTimeout(resetHandle);
+  }, [measurementsQuery.data, occurrencesQuery.data]);
+
   const occurrenceHasChanges = !isDraftEqual(occurrenceDraft, initialOccurrenceDraft);
   const measurementHasChanges = !isDraftEqual(measurementDraft, initialMeasurementDraft);
 
@@ -932,7 +992,7 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
         content: (
           <ManageConfirmModal
             title="Delete tree record?"
-            description="This will permanently remove the tree occurrence record. Delete linked photos and measurements first if they still exist. This action cannot be undone."
+            description="This will permanently remove the tree occurrence record. This action cannot be undone."
             confirmLabel="Delete tree"
             onConfirm={async () => {
               await deleteOccurrence.mutateAsync({ rkey: occurrenceRkey });
