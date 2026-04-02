@@ -1,4 +1,3 @@
-import { buildBlobUrl } from "@gainforest/leaflet-react/utils";
 import type { FloraMeasurement } from "@gainforest/generated/app/gainforest/dwc/measurement.defs";
 import type {
   MeasurementItem,
@@ -8,7 +7,6 @@ import type {
 
 const FLORA_MEASUREMENT_TYPE =
   "app.gainforest.dwc.measurement#floraMeasurement";
-const DEFAULT_PDS_HOST = "https://bsky.network";
 
 export type TreeOccurrenceDraft = {
   scientificName: string;
@@ -33,11 +31,13 @@ export type TreeMeasurementDraft = {
 export type TreeManagerItem = {
   occurrence: OccurrenceItem;
   measurements: MeasurementItem[];
+  bundledMeasurements: MeasurementItem[];
   preferredMeasurement: MeasurementItem | null;
   floraMeasurement: FloraMeasurement | null;
   photos: MultimediaItem[];
   hasLegacyMeasurements: boolean;
   hasUnsupportedMeasurements: boolean;
+  hasDuplicateBundledMeasurements: boolean;
 };
 
 type BlobWithUri = {
@@ -129,9 +129,10 @@ export function buildTreeManagerItems(
     }
     const linkedMeasurements = measurementsByOccurrence.get(occurrenceUri) ?? [];
     const linkedPhotos = multimediaByOccurrence.get(occurrenceUri) ?? [];
-    const preferredMeasurement =
-      linkedMeasurements.find((item) => parseFloraMeasurement(item.record.result)) ??
-      null;
+    const bundledMeasurements = linkedMeasurements.filter((item) =>
+      parseFloraMeasurement(item.record.result)
+    );
+    const preferredMeasurement = bundledMeasurements[0] ?? null;
     const floraMeasurement = preferredMeasurement
       ? parseFloraMeasurement(preferredMeasurement.record.result)
       : null;
@@ -139,6 +140,7 @@ export function buildTreeManagerItems(
     return [{
       occurrence,
       measurements: linkedMeasurements,
+      bundledMeasurements,
       preferredMeasurement,
       floraMeasurement,
       photos: linkedPhotos,
@@ -152,6 +154,7 @@ export function buildTreeManagerItems(
 
         return item.record.result !== null && parseFloraMeasurement(item.record.result) === null;
       }),
+      hasDuplicateBundledMeasurements: bundledMeasurements.length > 1,
     }];
   });
 }
@@ -184,6 +187,27 @@ export function getTreeMeasurementDraft(
   };
 }
 
+function getBlobCid(rawFile: BlobWithUri): string | null {
+  if (typeof rawFile.cid === "string") {
+    return rawFile.cid;
+  }
+
+  if (typeof rawFile.ref?.$link === "string") {
+    return rawFile.ref.$link;
+  }
+
+  if (typeof rawFile.uri === "string") {
+    try {
+      const url = new URL(rawFile.uri);
+      return url.searchParams.get("cid");
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
 export function getPhotoUrl(photo: MultimediaItem): string | null {
   const rawFile = photo.record.file;
   if (!isRecord(rawFile)) {
@@ -191,23 +215,20 @@ export function getPhotoUrl(photo: MultimediaItem): string | null {
   }
 
   const withUri = rawFile as BlobWithUri;
-  if (typeof withUri.uri === "string") {
-    return `/api/atproto/blob?url=${encodeURIComponent(withUri.uri)}`;
-  }
-
-  const cid =
-    typeof withUri.cid === "string"
-      ? withUri.cid
-      : typeof withUri.ref?.$link === "string"
-        ? withUri.ref.$link
-        : null;
+  const cid = getBlobCid(withUri);
 
   if (!cid) {
     return photo.record.accessUri;
   }
 
-  const fallbackUrl = buildBlobUrl(DEFAULT_PDS_HOST, photo.metadata.did, cid);
-  return `/api/atproto/blob?url=${encodeURIComponent(fallbackUrl)}`;
+  const did = photo.metadata.did;
+  if (typeof did !== "string" || did.length === 0) {
+    return photo.record.accessUri;
+  }
+
+  return `/api/atproto/blob?did=${encodeURIComponent(did)}&cid=${encodeURIComponent(
+    cid
+  )}`;
 }
 
 export function formatTreeSubtitle(item: TreeManagerItem): string {
@@ -306,22 +327,24 @@ export function validateOccurrenceDraft(
 export function validateMeasurementDraft(
   draft: TreeMeasurementDraft
 ): string | null {
-  const fields: Array<[string, string]> = [
-    ["DBH", draft.dbh],
-    ["Height", draft.totalHeight],
-    ["Diameter", draft.diameter],
-    ["Canopy cover", draft.canopyCoverPercent],
+  const fields: Array<[string, string, number]> = [
+    ["DBH", draft.dbh, 0],
+    ["Height", draft.totalHeight, 0],
+    ["Diameter", draft.diameter, 0],
+    ["Canopy cover", draft.canopyCoverPercent, -1],
   ];
 
-  for (const [label, rawValue] of fields) {
+  for (const [label, rawValue, minimumExclusive] of fields) {
     const value = rawValue.trim();
     if (!value) {
       continue;
     }
 
     const numericValue = Number(value);
-    if (!Number.isFinite(numericValue) || numericValue <= 0) {
-      return `${label} must be a positive number.`;
+    if (!Number.isFinite(numericValue) || numericValue <= minimumExclusive) {
+      return label === "Canopy cover"
+        ? `${label} must be a number greater than or equal to 0.`
+        : `${label} must be a positive number.`;
     }
   }
 

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Camera,
@@ -21,11 +21,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import Container from "@/components/ui/container";
 import { useModal } from "@/components/ui/modal/context";
-import PhotoAttachModal from "@/components/global/modals/upload/photo-attachment";
+import PhotoAttachModal, {
+  type UploadedPhotoPayload,
+} from "@/components/global/modals/upload/photo-attachment";
 import { MODAL_IDS } from "@/components/global/modals/ids";
 import { formatError } from "@/lib/utils/trpc-errors";
 import { indexerTrpc } from "@/lib/trpc/indexer/client";
 import { trpc } from "@/lib/trpc/client";
+import type {
+  MeasurementItem,
+  MultimediaItem,
+  OccurrenceItem,
+} from "@/lib/graphql-dev/queries";
 import { links } from "@/lib/links";
 import useMediaQuery from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
@@ -125,6 +132,87 @@ function getSelectedRkey(item: TreeManagerItem | null): string | null {
 function getOccurrenceUri(item: TreeManagerItem | null): string | null {
   const metadata = item?.occurrence.metadata;
   return metadata?.uri ?? null;
+}
+
+function revokeBlobUrl(url: string | null | undefined) {
+  if (typeof url === "string" && url.startsWith("blob:")) {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function createOptimisticMeasurementItem(
+  did: string,
+  occurrenceUri: string,
+  result: {
+    uri: string;
+    cid: string;
+    rkey: string;
+    record: {
+      occurrenceRef: string;
+      result: unknown;
+      measuredBy?: string;
+      measuredByID?: string;
+      measurementDate?: string;
+      measurementMethod?: string;
+      measurementRemarks?: string;
+      createdAt?: string;
+    };
+  }
+): MeasurementItem {
+  return {
+    metadata: {
+      did,
+      uri: result.uri,
+      rkey: result.rkey,
+      cid: result.cid,
+      createdAt: result.record.createdAt ?? null,
+    },
+    record: {
+      occurrenceRef: result.record.occurrenceRef ?? occurrenceUri,
+      result: result.record.result ?? null,
+      measuredBy: result.record.measuredBy ?? null,
+      measuredByID: result.record.measuredByID ?? null,
+      measurementDate: result.record.measurementDate ?? null,
+      measurementMethod: result.record.measurementMethod ?? null,
+      measurementRemarks: result.record.measurementRemarks ?? null,
+      createdAt: result.record.createdAt ?? null,
+      legacyMeasurementType: null,
+      legacyMeasurementValue: null,
+      legacyMeasurementUnit: null,
+      schemaVersion: "bundled",
+    },
+  };
+}
+
+function createOptimisticPhotoItem(
+  did: string,
+  occurrenceUri: string,
+  uploadedPhoto: UploadedPhotoPayload
+): MultimediaItem {
+  return {
+    metadata: {
+      did,
+      uri: uploadedPhoto.uri,
+      rkey: uploadedPhoto.rkey,
+      cid: uploadedPhoto.cid,
+      createdAt: uploadedPhoto.record.createdAt ?? null,
+    },
+    record: {
+      occurrenceRef: occurrenceUri,
+      siteRef: uploadedPhoto.record.siteRef ?? null,
+      subjectPart: uploadedPhoto.record.subjectPart ?? null,
+      subjectPartUri: uploadedPhoto.record.subjectPartUri ?? null,
+      subjectOrientation: uploadedPhoto.record.subjectOrientation ?? null,
+      file: uploadedPhoto.record.file ?? null,
+      format: uploadedPhoto.record.format ?? null,
+      accessUri: uploadedPhoto.previewUrl ?? uploadedPhoto.record.accessUri ?? null,
+      variantLiteral: uploadedPhoto.record.variantLiteral ?? null,
+      caption: uploadedPhoto.record.caption ?? null,
+      creator: uploadedPhoto.record.creator ?? null,
+      createDate: uploadedPhoto.record.createDate ?? null,
+      createdAt: uploadedPhoto.record.createdAt ?? null,
+    },
+  };
 }
 
 function SectionCard({
@@ -233,20 +321,99 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
   const [measurementFeedback, setMeasurementFeedback] = useState<string | null>(null);
   const [occurrenceError, setOccurrenceError] = useState<string | null>(null);
   const [measurementError, setMeasurementError] = useState<string | null>(null);
+  const [optimisticOccurrenceRecords, setOptimisticOccurrenceRecords] = useState<
+    Record<string, NonNullable<OccurrenceItem["record"]>>
+  >({});
+  const [optimisticMeasurementRecords, setOptimisticMeasurementRecords] = useState<
+    Record<string, MeasurementItem[]>
+  >({});
+  const [optimisticAddedPhotos, setOptimisticAddedPhotos] = useState<
+    Record<string, MultimediaItem[]>
+  >({});
+  const [optimisticDeletedPhotoRkeys, setOptimisticDeletedPhotoRkeys] = useState<
+    Record<string, true>
+  >({});
+  const [optimisticDeletedOccurrenceRkeys, setOptimisticDeletedOccurrenceRkeys] = useState<
+    Record<string, true>
+  >({});
+  const optimisticAddedPhotosRef = useRef(optimisticAddedPhotos);
+  const lastDraftResetKeyRef = useRef<string | null>(null);
 
   const isLoading =
     occurrencesQuery.isLoading || measurementsQuery.isLoading || multimediaQuery.isLoading;
   const queryError =
     occurrencesQuery.error ?? measurementsQuery.error ?? multimediaQuery.error;
 
+  const mergedOccurrences = useMemo(() => {
+    return (occurrencesQuery.data ?? []).flatMap((item) => {
+      const metadata = item.metadata;
+      const record = item.record;
+      const rkey = metadata?.rkey;
+
+      if (!metadata || !record || !rkey || optimisticDeletedOccurrenceRkeys[rkey]) {
+        return [];
+      }
+
+      const optimisticRecord = optimisticOccurrenceRecords[rkey];
+      return [{
+        ...item,
+        record: optimisticRecord ?? record,
+      }];
+    });
+  }, [
+    occurrencesQuery.data,
+    optimisticDeletedOccurrenceRkeys,
+    optimisticOccurrenceRecords,
+  ]);
+
+  const mergedMeasurements = useMemo(() => {
+    const overriddenOccurrenceUris = new Set(
+      Object.keys(optimisticMeasurementRecords)
+    );
+
+    const baseMeasurements = (measurementsQuery.data ?? []).filter((item) => {
+      const occurrenceRef = item.record.occurrenceRef;
+      return !occurrenceRef || !overriddenOccurrenceUris.has(occurrenceRef);
+    });
+
+    const optimisticMeasurements = Object.values(optimisticMeasurementRecords).flat();
+    return [...optimisticMeasurements, ...baseMeasurements];
+  }, [measurementsQuery.data, optimisticMeasurementRecords]);
+
+  const mergedMultimedia = useMemo(() => {
+    const basePhotos = (multimediaQuery.data ?? []).filter((item) => {
+      const rkey = item.metadata?.rkey;
+      return !rkey || optimisticDeletedPhotoRkeys[rkey] !== true;
+    });
+
+    const basePhotoRkeys = new Set(
+      basePhotos
+        .map((item) => item.metadata?.rkey)
+        .filter((value): value is string => typeof value === "string")
+    );
+
+    const optimisticPhotos = Object.values(optimisticAddedPhotos)
+      .flat()
+      .filter((item) => {
+        const rkey = item.metadata?.rkey;
+        return (
+          typeof rkey === "string" &&
+          optimisticDeletedPhotoRkeys[rkey] !== true &&
+          !basePhotoRkeys.has(rkey)
+        );
+      });
+
+    return [...optimisticPhotos, ...basePhotos];
+  }, [multimediaQuery.data, optimisticAddedPhotos, optimisticDeletedPhotoRkeys]);
+
   const treeItems = useMemo(
     () =>
       buildTreeManagerItems(
-        occurrencesQuery.data ?? [],
-        measurementsQuery.data ?? [],
-        multimediaQuery.data ?? []
+        mergedOccurrences,
+        mergedMeasurements,
+        mergedMultimedia
       ),
-    [occurrencesQuery.data, measurementsQuery.data, multimediaQuery.data]
+    [mergedOccurrences, mergedMeasurements, mergedMultimedia]
   );
 
   const filteredTrees = useMemo(() => {
@@ -324,7 +491,15 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
     setSelectedTreeRkey,
   ]);
 
+  const activeTreeResetKey = activeTree?.occurrence.metadata?.rkey ?? null;
+
   useEffect(() => {
+    if (lastDraftResetKeyRef.current === activeTreeResetKey) {
+      return;
+    }
+
+    lastDraftResetKeyRef.current = activeTreeResetKey;
+
     const nextOccurrenceDraft = activeTree?.occurrence.record
       ? getTreeOccurrenceDraft(activeTree.occurrence.record)
       : EMPTY_OCCURRENCE_DRAFT;
@@ -344,7 +519,19 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
     }, 0);
 
     return () => window.clearTimeout(resetHandle);
-  }, [activeTree]);
+  }, [activeTree, activeTreeResetKey]);
+
+  useEffect(() => {
+    optimisticAddedPhotosRef.current = optimisticAddedPhotos;
+  }, [optimisticAddedPhotos]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(optimisticAddedPhotosRef.current)
+        .flat()
+        .forEach((item) => revokeBlobUrl(item.record.accessUri));
+    };
+  }, []);
 
   const occurrenceHasChanges = !isDraftEqual(occurrenceDraft, initialOccurrenceDraft);
   const measurementHasChanges = !isDraftEqual(measurementDraft, initialMeasurementDraft);
@@ -395,6 +582,7 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
     if (!metadata?.rkey) {
       return;
     }
+    const occurrenceRkey = metadata.rkey;
 
     const validationError = validateOccurrenceDraft(occurrenceDraft);
     if (validationError) {
@@ -441,9 +629,31 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
 
     try {
       await updateOccurrence.mutateAsync({
-        rkey: metadata.rkey,
+        rkey: occurrenceRkey,
         data,
         ...(unset.length > 0 ? { unset } : {}),
+      });
+
+      setOptimisticOccurrenceRecords((current) => {
+        const existing = activeTree?.occurrence.record;
+        if (!existing) {
+          return current;
+        }
+
+        return {
+          ...current,
+          [occurrenceRkey]: {
+            ...existing,
+            ...Object.fromEntries(
+              Object.entries(normalizedCurrent).map(([key, value]) => [
+                key,
+                value === "" && OPTIONAL_OCCURRENCE_FIELDS.includes(key as OptionalOccurrenceField)
+                  ? null
+                  : value,
+              ])
+            ),
+          },
+        };
       });
 
       setInitialOccurrenceDraft(normalizedCurrent);
@@ -464,9 +674,13 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
       return;
     }
 
-    if (activeTree?.hasLegacyMeasurements || activeTree?.hasUnsupportedMeasurements) {
+    if (
+      activeTree?.hasLegacyMeasurements ||
+      activeTree?.hasUnsupportedMeasurements ||
+      activeTree?.hasDuplicateBundledMeasurements
+    ) {
       setMeasurementError(
-        "This tree still has an unmigrated or unsupported measurement record. Run the migration before editing measurements here."
+        "This tree has measurement records that need manual review before editing here."
       );
       return;
     }
@@ -495,12 +709,22 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
       if (measurementRkey) {
         if (!floraPayload) {
           await deleteMeasurement.mutateAsync({ rkey: measurementRkey });
+          setOptimisticMeasurementRecords((current) => ({
+            ...current,
+            [occurrenceUri]: [],
+          }));
           setMeasurementFeedback("Measurements removed.");
         } else {
-          await updateMeasurement.mutateAsync({
+          const result = await updateMeasurement.mutateAsync({
             rkey: measurementRkey,
             data: { result: floraPayload },
           });
+          setOptimisticMeasurementRecords((current) => ({
+            ...current,
+            [occurrenceUri]: [
+              createOptimisticMeasurementItem(did, occurrenceUri, result),
+            ],
+          }));
           setMeasurementFeedback("Measurements saved.");
         }
       } else {
@@ -509,7 +733,7 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
           return;
         }
 
-        await createMeasurement.mutateAsync({
+        const result = await createMeasurement.mutateAsync({
           occurrenceRef: occurrenceUri,
           flora: {
             dbh: floraPayload.dbh,
@@ -518,6 +742,10 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
             canopyCoverPercent: floraPayload.canopyCoverPercent,
           },
         });
+        setOptimisticMeasurementRecords((current) => ({
+          ...current,
+          [occurrenceUri]: [createOptimisticMeasurementItem(did, occurrenceUri, result)],
+        }));
         setMeasurementFeedback("Measurements added.");
       }
 
@@ -545,7 +773,20 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
           <PhotoAttachModal
             occurrenceUri={occurrenceUri}
             speciesName={speciesName}
-            onPhotoUploaded={() => {
+            onPhotoUploaded={(uploadedPhoto) => {
+              setOptimisticAddedPhotos((current) => {
+                const existing = current[occurrenceUri] ?? [];
+                const optimisticItem = createOptimisticPhotoItem(
+                  did,
+                  occurrenceUri,
+                  uploadedPhoto
+                );
+
+                return {
+                  ...current,
+                  [occurrenceUri]: [...existing, optimisticItem],
+                };
+              });
               void indexerUtils.multimedia.list.invalidate();
             }}
           />
@@ -567,6 +808,33 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
             confirmLabel="Delete photo"
             onConfirm={async () => {
               await deleteMultimedia.mutateAsync({ rkey: photoRkey });
+              setOptimisticAddedPhotos((current) => {
+                let changed = false;
+                const nextEntries = Object.entries(current)
+                  .map(([occurrenceUri, items]) => {
+                    const remaining = items.filter((item) => {
+                      const keep = item.metadata?.rkey !== photoRkey;
+                      if (!keep) {
+                        changed = true;
+                        revokeBlobUrl(item.record.accessUri);
+                      }
+                      return keep;
+                    });
+
+                    return [occurrenceUri, remaining] as const;
+                  })
+                  .filter(([, items]) => items.length > 0);
+
+                if (!changed) {
+                  return current;
+                }
+
+                return Object.fromEntries(nextEntries);
+              });
+              setOptimisticDeletedPhotoRkeys((current) => ({
+                ...current,
+                [photoRkey]: true,
+              }));
               await indexerUtils.multimedia.list.invalidate();
             }}
           />
@@ -583,35 +851,25 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
       return;
     }
 
+    const hasLinkedChildren = item.photos.length > 0 || item.measurements.length > 0;
+    if (hasLinkedChildren) {
+      return;
+    }
+
     pushModal(
       {
         id: `upload/trees/manage/delete-tree/${occurrenceRkey}`,
         content: (
           <ManageConfirmModal
             title="Delete tree record?"
-            description={`This will delete the tree occurrence, ${item.measurements.length} linked measurement record${item.measurements.length === 1 ? "" : "s"}, and ${item.photos.length} linked photo${item.photos.length === 1 ? "" : "s"}. This action cannot be undone.`}
+            description="This will permanently remove the tree occurrence record. Delete linked photos and measurements first if they still exist. This action cannot be undone."
             confirmLabel="Delete tree"
             onConfirm={async () => {
-              const photoRkeys = item.photos
-                .map((photo) => photo.metadata?.rkey)
-                .filter((value): value is string => typeof value === "string");
-              const measurementRkeys = item.measurements
-                .map((measurement) => measurement.metadata?.rkey)
-                .filter((value): value is string => typeof value === "string");
-
-              if (photoRkeys.length > 0) {
-                await Promise.all(
-                  photoRkeys.map((rkey) => deleteMultimedia.mutateAsync({ rkey }))
-                );
-              }
-
-              if (measurementRkeys.length > 0) {
-                await Promise.all(
-                  measurementRkeys.map((rkey) => deleteMeasurement.mutateAsync({ rkey }))
-                );
-              }
-
               await deleteOccurrence.mutateAsync({ rkey: occurrenceRkey });
+              setOptimisticDeletedOccurrenceRkeys((current) => ({
+                ...current,
+                [occurrenceRkey]: true,
+              }));
               void setSelectedTreeRkey(null);
               await invalidateTreeQueries();
             }}
@@ -623,6 +881,15 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
     );
     void show();
   };
+
+  const measurementEditingBlocked =
+    activeTree?.hasLegacyMeasurements ||
+    activeTree?.hasUnsupportedMeasurements ||
+    activeTree?.hasDuplicateBundledMeasurements;
+  const canDeleteTree =
+    Boolean(activeTree?.occurrence.metadata?.rkey) &&
+    (activeTree?.photos.length ?? 0) === 0 &&
+    (activeTree?.measurements.length ?? 0) === 0;
 
   if (isLoading) {
     return <TreesManageSkeleton />;
@@ -835,10 +1102,11 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
                   </div>
                 </div>
 
-                {activeTree.hasLegacyMeasurements || activeTree.hasUnsupportedMeasurements ? (
+                {measurementEditingBlocked ? (
                   <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-700 dark:text-yellow-300">
-                    Measurements for this tree are still using a legacy or unsupported shape.
-                    Run the measurement migration before editing them here.
+                    {activeTree.hasDuplicateBundledMeasurements
+                      ? "This tree has multiple bundled measurement records. Clean them up manually before editing measurements here."
+                      : "Measurements for this tree are still using a legacy or unsupported shape. Run the measurement migration before editing them here."}
                   </div>
                 ) : null}
               </section>
@@ -970,9 +1238,11 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
                 title="Tree measurements"
                 description="Manage the migrated bundled flora measurements linked to this occurrence."
               >
-                {activeTree.hasLegacyMeasurements || activeTree.hasUnsupportedMeasurements ? (
+                {measurementEditingBlocked ? (
                   <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-700 dark:text-yellow-300">
-                    Measurements are read-only until migration is complete for this tree.
+                    {activeTree.hasDuplicateBundledMeasurements
+                      ? "Multiple bundled measurement records were found for this tree, so measurement editing is disabled here to avoid overwriting the wrong record."
+                      : "Measurements are read-only until migration is complete for this tree."}
                   </div>
                 ) : (
                   <>
@@ -1166,13 +1436,17 @@ export function TreesManageClient({ did }: TreesManageClientProps) {
                       Delete this tree permanently
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      This also removes {activeTree.photos.length} photo{activeTree.photos.length === 1 ? "" : "s"} and {activeTree.measurements.length} measurement record{activeTree.measurements.length === 1 ? "" : "s"} linked to this occurrence.
+                      {canDeleteTree
+                        ? "This tree no longer has linked photos or measurements, so it can be deleted safely."
+                        : `Delete linked photos and measurement records first. This tree still has ${activeTree.photos.length} photo${activeTree.photos.length === 1 ? "" : "s"} and ${activeTree.measurements.length} measurement record${activeTree.measurements.length === 1 ? "" : "s"}.`}
                     </p>
                   </div>
                   <Button
                     variant="destructive"
+                    disabled={!canDeleteTree || deleteOccurrence.isPending}
                     onClick={() => openDeleteTreeModal(activeTree)}
                   >
+                    {deleteOccurrence.isPending ? <Loader2 className="animate-spin" /> : null}
                     <Trash2 />
                     Delete tree
                   </Button>
