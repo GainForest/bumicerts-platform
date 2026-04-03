@@ -56,8 +56,8 @@ export const links = {
   },
   api: {
     onboarding: {
-      sendInviteEmail: "/onboarding/api/send-invite-email",
-      verifyInviteCode: "/onboarding/api/verify-invite-code",
+      sendVerificationCode: "/onboarding/api/send-verification-code",
+      verifyEmailCode: "/onboarding/api/verify-email-code",
       generateShortDescription: "/onboarding/api/generate-short-description",
       fetchBrandInfo: "/onboarding/api/fetch-brand-info",
       onboard: "/onboarding/api/onboard",
